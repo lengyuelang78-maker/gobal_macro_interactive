@@ -1,0 +1,23 @@
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Python (build script)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local notes / drafts (你可以保留这块给本地用)
+NOTES.md
+draft/
+.scratch/

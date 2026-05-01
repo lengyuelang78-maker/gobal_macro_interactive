@@ -1,0 +1,3648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球宏观经济联动系统</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* 暗色系 - 三档背景对比明显 */
+    --bg-base: #0a0b0d;       /* 最深 - 主画布 */
+    --bg-card: #14161a;       /* 中等 - 信息面板/控制区 */
+    --bg-soft: #1c1f24;       /* 较浅 - 卡片元素 */
+    --bg-deep: #252930;       /* 最浅 - hover/选中 */
+    --ink: #f0ede4;           /* 主文字 - 暖白 */
+    --ink-soft: #c4c0b4;      /* 次文字 */
+    --ink-mute: #8a8880;      /* 辅助文字 */
+    --ink-faint: #55534d;     /* 装饰文字 */
+    --line: #2a2d33;          /* 分隔线 */
+    --line-strong: #3d4148;   /* 强分隔线 */
+    --accent: #e88862;        /* 强调色 - 暖橙 */
+    --accent-soft: rgba(232,136,98,0.15);
+    --green-up: #6dc28f;      /* 上涨 - 暖绿 */
+    --red-down: #e57373;      /* 下跌 - 暖红 */
+    --neutral: #8a8880;
+
+    /* 层级颜色 - 暗色系适配，提高饱和度 */
+    --l1: #b8a8e0;            /* 货币基础 - 紫 */
+    --l1-soft: rgba(184,168,224,0.18);
+    --l1-bg: rgba(184,168,224,0.05);
+    --l2: #7eb8d8;            /* 经济运行 - 蓝 */
+    --l2-soft: rgba(126,184,216,0.18);
+    --l2-bg: rgba(126,184,216,0.05);
+    --l3: #e8b873;            /* 政策调控 - 琥珀 */
+    --l3-soft: rgba(232,184,115,0.18);
+    --l3-bg: rgba(232,184,115,0.05);
+    --l4: #82c79f;            /* 金融市场 - 绿 */
+    --l4-soft: rgba(130,199,159,0.18);
+    --l4-bg: rgba(130,199,159,0.05);
+    --l5: #d896a3;            /* 资产定价 - 酒红 */
+    --l5-soft: rgba(216,150,163,0.18);
+    --l5-bg: rgba(216,150,163,0.05);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg-base);
+    color: var(--ink);
+    font-family: 'Noto Sans SC', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  .topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--line-strong);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    background: var(--bg-card);
+    position: relative;
+    z-index: 10;
+  }
+
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-left: 12px;
+    padding: 2px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .topbar-spacer { flex: 1; }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+
+  .scenario-pill {
+    padding: 5px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--ink-soft);
+  }
+
+  .scenario-pill:hover { background: var(--bg-soft); }
+  .scenario-pill.active {
+    background: var(--ink);
+    color: var(--bg-card);
+    border-color: var(--ink);
+  }
+
+  /* ===== LAYOUT ===== */
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: 1fr 280px;
+    height: calc(100vh - 56px);
+    gap: 0;
+  }
+
+  .canvas-wrap {
+    grid-column: 1;
+    grid-row: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    /* 主画布：最深背景，营造焦点感 */
+    background:
+      radial-gradient(ellipse at center, #0d0f12 0%, #07080a 100%);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .canvas-wrap:active { cursor: grabbing; }
+
+  .info-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    /* 面板：稍亮以与画布形成对比 */
+    background: var(--bg-card);
+    border-left: 1px solid var(--line-strong);
+    overflow-y: auto;
+    padding: 24px 26px;
+  }
+
+  .controls-wrap {
+    grid-column: 1;
+    grid-row: 2;
+    /* 控制区：与面板同色，与画布拉开层次 */
+    background: var(--bg-card);
+    border-top: 1px solid var(--line-strong);
+    overflow-y: auto;
+    padding: 16px 24px;
+  }
+
+  /* ===== CANVAS / SVG ===== */
+  #canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .canvas-overlay {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    letter-spacing: 0.05em;
+  }
+
+  .canvas-legend {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    width: 200px;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--ink-mute);
+    background: rgba(20,22,26,0.92);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 10px 12px;
+    backdrop-filter: blur(8px);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-line {
+    width: 14px; height: 2px;
+    flex-shrink: 0;
+  }
+
+  .canvas-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .canvas-btn {
+    width: 30px; height: 30px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-mute);
+    font-size: 14px;
+    transition: all 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .canvas-btn:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+
+  /* SVG node styles */
+  .node-group { cursor: grab; }
+  .node-group:active { cursor: grabbing; }
+
+  /* 级联动画：节点波纹式淡入（SVG group 已通过 translate 定位，不能在 transform 里再加 scale，会打架）*/
+  /* 改用 opacity 双阶段过渡模拟"波纹"效果 */
+  @keyframes nodeFadeIn {
+    0% { opacity: 0.12; }
+    100% { opacity: 1; }
+  }
+
+  /* 节点圆的"脉冲"——通过 stroke-width 的 keyframe 单独做 */
+  @keyframes nodePulse {
+    0% { stroke-width: 1.8; }
+    40% { stroke-width: 4; }
+    100% { stroke-width: 1.8; }
+  }
+
+  /* 边的"生长"——从起点画到终点 */
+  /* 配合 stroke-dasharray="100 100" pathLength="100"，offset 100→0 实现 */
+  @keyframes edgeGrow {
+    0% { stroke-dashoffset: 100; }
+    100% { stroke-dashoffset: 0; }
+  }
+
+  /* 箭头延迟出现——边生长 80% 完成时浮现 */
+  @keyframes arrowAppear {
+    0%, 70% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* 三因子视图：动画结束后非该因子节点平滑淡化 */
+  @keyframes factorFadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0.18; }
+  }
+
+  .node-circle {
+    transition: r 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke-width 0.2s;
+  }
+
+  .node-group:hover .node-circle {
+    stroke-width: 2.5;
+  }
+
+  .node-label {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    pointer-events: none;
+    fill: var(--ink);
+  }
+
+  .node-sublabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    fill: var(--ink-mute);
+    pointer-events: none;
+  }
+
+  .node-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  .edge {
+    transition: all 0.3s ease;
+    pointer-events: stroke;
+    cursor: pointer;
+  }
+
+  .edge:hover {
+    stroke-width: 2.5;
+  }
+
+  .edge-pulse {
+    animation: edgePulse 1.5s ease-out;
+  }
+
+  @keyframes edgePulse {
+    0% { stroke-opacity: 0.2; stroke-width: 1; }
+    50% { stroke-opacity: 1; stroke-width: 3; }
+    100% { stroke-opacity: 0.4; stroke-width: 1.5; }
+  }
+
+  .layer-ring {
+    fill: none;
+    stroke-dasharray: 2 4;
+    pointer-events: none;
+  }
+
+  .layer-ring-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    fill: var(--ink-faint);
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+
+  /* ===== INFO PANEL ===== */
+  .info-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    height: 100%;
+    color: var(--ink-mute);
+  }
+
+  .info-empty-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 12px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .info-empty-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+  }
+
+  .info-empty-hints {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .info-empty-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    padding: 10px 12px;
+    background: var(--bg-soft);
+    border-left: 2px solid var(--accent-soft);
+    line-height: 1.5;
+  }
+
+  .info-empty-hint b { color: var(--ink); font-weight: 500; }
+
+  .info-header {
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .info-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  .info-layer-badge {
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  .info-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .info-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+
+  .info-state {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--bg-soft);
+    border-radius: 4px;
+  }
+
+  .info-state-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .info-state-val {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .info-state-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .arrow-up { color: var(--green-up); }
+  .arrow-down { color: var(--red-down); }
+  .arrow-flat { color: var(--ink-mute); }
+
+  .info-section {
+    margin-bottom: 20px;
+  }
+
+  .info-section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .info-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .info-body {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--ink-soft);
+  }
+
+  .info-body strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* drivers */
+  .driver-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-soft);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .driver-item:hover {
+    background: var(--bg-deep);
+  }
+
+  .driver-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .driver-name {
+    flex: 1;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .driver-impact {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+  }
+
+  /* connections */
+  .connection {
+    padding: 12px 14px;
+    background: var(--bg-soft);
+    border-left: 2px solid var(--line-strong);
+    border-radius: 0 3px 3px 0;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .connection:hover {
+    background: var(--bg-deep);
+    border-left-color: var(--accent);
+  }
+
+  .connection-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .connection-target {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .connection-strength {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+  }
+
+  .connection-mech {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  /* evidence */
+  .evidence {
+    padding: 12px 14px;
+    background: var(--bg-soft);
+    border-radius: 3px;
+    margin-bottom: 8px;
+    border-left: 2px solid var(--accent-soft);
+  }
+
+  .evidence-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .evidence-source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .evidence-year {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-mute);
+  }
+
+  .evidence-body {
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+
+  /* ===== CONTROLS ===== */
+  .controls-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .controls-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .controls-title-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-mute);
+    margin-left: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .reset-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    background: none;
+    border: 1px solid var(--line-strong);
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .reset-btn:hover {
+    color: var(--ink);
+    border-color: var(--ink-mute);
+  }
+
+  .levers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 24px;
+  }
+
+  .lever {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lever-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .lever-name {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .lever-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-mute);
+    margin-left: 6px;
+  }
+
+  .lever-val {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .lever-val-delta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    margin-left: 4px;
+  }
+
+  /* slider */
+  .slider-wrap {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+
+  .slider-marks {
+    position: absolute;
+    top: 22px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+
+  .slider-baseline {
+    position: absolute;
+    top: 12px;
+    width: 1px;
+    height: 8px;
+    background: var(--accent);
+    pointer-events: none;
+  }
+
+  /* scenarios */
+  .scenarios-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .scenarios-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+    align-self: center;
+  }
+
+  .scenarios-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--line-strong);
+    margin: 0 4px;
+  }
+
+  /* 历史情景：带特殊视觉提示 */
+  .scenario-pill.scenario-historical {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+
+  .scenario-pill.scenario-historical:hover {
+    background: var(--accent-soft);
+  }
+
+  .scenario-pill.scenario-historical.active {
+    background: var(--accent);
+    color: var(--bg-card);
+    border-color: var(--accent);
+  }
+
+  /* note for non-standard scenarios */
+  .scenario-note {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--l3-soft);
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    border-left: 2px solid var(--l3);
+    display: none;
+  }
+
+  .scenario-note.show { display: block; }
+
+  .scenario-note-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--l3);
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* tooltip on edge hover */
+  .edge-tooltip {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--line-strong);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-soft);
+    pointer-events: none;
+    z-index: 100;
+    max-width: 200px;
+    line-height: 1.4;
+    display: none;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-mute); }
+
+  /* ===== VIEW MODES SWITCHER ===== */
+  .view-modes {
+    position: absolute;
+    top: 140px;  /* 在 canvas-overlay 下方 */
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(20,22,26,0.92);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 10px 12px;
+    backdrop-filter: blur(8px);
+    width: 168px;
+    z-index: 5;
+  }
+
+  .view-modes-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .view-mode-btn {
+    padding: 8px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .view-mode-btn:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: var(--line-strong);
+  }
+
+  .view-mode-btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .view-mode-name {
+    font-size: 11px;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .view-mode-btn.active .view-mode-name {
+    color: var(--accent);
+  }
+
+  .view-mode-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+
+  .factor-filter {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .factor-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-mute);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .factor-pill:hover {
+    color: var(--ink);
+  }
+
+  .factor-pill.active {
+    background: var(--fc, var(--ink));
+    color: #0a0b0d;
+    border-color: var(--fc, var(--ink));
+    font-weight: 600;
+  }
+
+  /* ===== TUTORIAL ===== */
+    position: fixed;
+    inset: 0;
+    background: rgba(7,8,10,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: tutFadeIn 0.3s ease;
+  }
+
+  .tutorial-overlay.active { display: flex; }
+
+  @keyframes tutFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .tutorial-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    max-width: 540px;
+    width: 100%;
+    padding: 28px 32px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    animation: tutSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes tutSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tutorial-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .tutorial-step-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tutorial-skip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+
+  .tutorial-skip:hover { color: var(--ink); }
+
+  .tutorial-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .tutorial-body {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--ink-soft);
+    margin-bottom: 24px;
+    min-height: 120px;
+  }
+
+  .tutorial-body strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .tutorial-body code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--bg-soft);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  .tutorial-body .tut-example {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--bg-soft);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 3px 3px 0;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .tutorial-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .tutorial-back, .tutorial-next {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .tutorial-back {
+    background: none;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-mute);
+  }
+
+  .tutorial-back:hover:not(:disabled) {
+    color: var(--ink);
+    border-color: var(--ink-mute);
+  }
+
+  .tutorial-back:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .tutorial-next {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #0a0b0d;
+    font-weight: 500;
+  }
+
+  .tutorial-next:hover {
+    filter: brightness(1.1);
+  }
+
+  .tutorial-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tut-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--line-strong);
+    transition: all 0.2s;
+  }
+
+  .tut-dot.active {
+    background: var(--accent);
+    width: 18px;
+    border-radius: 3px;
+  }
+
+  /* Tutorial trigger button */
+  .tutorial-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    color: #0a0b0d;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+
+  .tutorial-trigger:hover {
+    transform: scale(1.1);
+  }
+
+  /* 署名水印 */
+  .signature-watermark {
+    position: fixed;
+    bottom: 12px;
+    left: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    z-index: 50;
+    pointer-events: auto;
+    transition: color 0.2s;
+  }
+
+  .signature-watermark a {
+    color: var(--ink-soft);
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .signature-watermark a:hover {
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">全球宏观经济联动系统</div>
+  <div class="brand-tag">v2 · INTERACTIVE</div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-actions">
+    <span id="liveStatus">22 节点 · 5 层环 · 实时联动</span>
+    <span style="margin-left:14px;padding-left:14px;border-left:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);letter-spacing:0.05em">
+      by <a href="https://github.com/wolf-cool" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:500" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">wolf_cool</a>
+    </span>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+
+    <div class="canvas-overlay">
+      <div>径向网络视图 · RADIAL NETWORK</div>
+      <div style="margin-top:4px;color:var(--ink-faint)">中心 = 全球流动性 · 外环 = 资产定价</div>
+      <div style="margin-top:8px;color:var(--ink-faint);font-size:9px;line-height:1.6">
+        ▸ 滚轮：缩放 40%-250%<br>
+        ▸ 拖动空白处：平移画布<br>
+        ▸ 拖动节点：在所属层环上调整位置<br>
+        ▸ 点击节点：查看详情 · 点击连线：传导机制
+      </div>
+    </div>
+
+    <div class="canvas-legend">
+      <div style="font-weight:600;color:var(--ink);margin-bottom:4px;font-size:11px;letter-spacing:0.02em">指标变化</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--green-up)"></span>↑ 上升 / 利多</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--red-down)"></span>↓ 下降 / 利空</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--neutral)"></span>→ 中性 / 不显著</div>
+      <div style="font-weight:600;color:var(--ink);margin:6px 0 4px;padding-top:6px;border-top:1px solid var(--line);font-size:11px;letter-spacing:0.02em">连线类型</div>
+      <div class="legend-item"><span class="legend-line" style="background:var(--ink-soft)"></span>因果·正向 (实线)</div>
+      <div class="legend-item"><span class="legend-line" style="background:var(--ink-soft);height:0;border-top:2px dashed var(--ink-soft)"></span>因果·负向 (长虚)</div>
+      <div class="legend-item"><span class="legend-line" style="background:var(--ink-soft);height:0;border-top:2px dashed var(--ink-soft)"></span>依环境 (中虚)</div>
+      <div class="legend-item"><span class="legend-line" style="background:#5b9bd5"></span>共振·双向 (蓝实线)</div>
+      <div class="legend-item" style="margin-top:4px;padding-top:4px;border-top:1px dashed var(--line)"><span style="font-size:9px;color:var(--ink-mute);letter-spacing:0.02em">► 单箭头=因果方向 · ←→双箭头=共振</span></div>
+    </div>
+
+    <!-- 视图模式切换 -->
+    <div class="view-modes" id="viewModes">
+      <div class="view-modes-label">视图模式</div>
+      <div class="view-mode-btn active" data-mode="layers" onclick="setViewMode('layers')">
+        <div class="view-mode-name">5层架构</div>
+        <div class="view-mode-desc">货币·宏观·政策·市场·定价</div>
+      </div>
+      <div class="view-mode-btn" data-mode="factors" onclick="setViewMode('factors')">
+        <div class="view-mode-name">三因子视图</div>
+        <div class="view-mode-desc">增长 · 通胀 · 流动性</div>
+      </div>
+      <!-- 三因子激活后展开 -->
+      <div class="factor-filter" id="factorFilter" style="display:none">
+        <div class="factor-pill" data-factor="all" onclick="setFactorFilter('all')">全部</div>
+        <div class="factor-pill" data-factor="growth" onclick="setFactorFilter('growth')" style="--fc:#7eb8d8">增长</div>
+        <div class="factor-pill" data-factor="inflation" onclick="setFactorFilter('inflation')" style="--fc:#e57373">通胀</div>
+        <div class="factor-pill" data-factor="liquidity" onclick="setFactorFilter('liquidity')" style="--fc:#b8a8e0">流动性</div>
+      </div>
+    </div>
+
+    <div class="canvas-controls">
+      <button class="canvas-btn replay-btn" id="replayBtn" onclick="startCascadeAnimation()" title="重播传导动画" style="display:none;width:auto;padding:0 10px;background:var(--accent);color:#0a0b0d;border-color:var(--accent);font-weight:600">
+        <span style="font-size:11px">▶ 重播</span>
+      </button>
+      <button class="canvas-btn" onclick="zoomIn()" title="放大 (滚轮向上)">+</button>
+      <button class="canvas-btn" onclick="zoomOut()" title="缩小 (滚轮向下)">−</button>
+      <span id="zoomIndicator" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);align-self:center;padding:0 8px">100%</span>
+      <button class="canvas-btn" onclick="resetView()" title="重置视图（位置+缩放+布局）">⟲</button>
+    </div>
+
+    <div class="edge-tooltip" id="edgeTooltip"></div>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div class="info-panel" id="infoPanel">
+    <div class="info-empty">
+      <div class="info-empty-title">理解市场如何运作<br>从联动开始</div>
+      <div class="info-empty-body">
+        这是一个由 22 个核心节点组成的互动网络。每个节点都基于真实的实证研究确定其与其他节点的传导系数。
+      </div>
+      <div class="info-empty-hints">
+        <div class="info-empty-hint">
+          <b>① 拖动下方杠杆</b><br>观察整个网络如何级联响应
+        </div>
+        <div class="info-empty-hint">
+          <b>② 点击任意节点</b><br>查看其驱动因素、影响下游和实证依据
+        </div>
+        <div class="info-empty-hint">
+          <b>③ 试试预设情景</b><br>"滞胀"、"硬着陆"、"中国刺激" 等真实历史情境
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-wrap">
+    <div class="controls-header">
+      <div>
+        <span class="controls-title">宏观情景模拟器</span>
+        <span class="controls-title-tag">SCENARIO SIMULATOR · 真实研究系数</span>
+      </div>
+      <button class="reset-btn" onclick="resetLevers()">RESET TO BASELINE</button>
+    </div>
+
+    <div class="levers" id="leversContainer"></div>
+
+    <div class="scenarios-row">
+      <span class="scenarios-label">PRESET ▸</span>
+      <div class="scenario-pill" onclick="loadScenario('baseline')">基准</div>
+      <span class="scenarios-divider"></span>
+      <div class="scenario-pill scenario-historical" onclick="loadScenario('stagflation_1974')">滞胀 1974</div>
+      <div class="scenario-pill scenario-historical" onclick="loadScenario('volcker_1981')">Volcker 1981</div>
+      <div class="scenario-pill scenario-historical" onclick="loadScenario('gfc_2008')">金融危机 2008</div>
+      <div class="scenario-pill scenario-historical" onclick="loadScenario('covid_2020')">COVID 2020</div>
+      <span class="scenarios-divider"></span>
+      <div class="scenario-pill" onclick="loadScenario('stagflation')">假设·滞胀</div>
+      <div class="scenario-pill" onclick="loadScenario('recession')">假设·硬着陆</div>
+      <div class="scenario-pill" onclick="loadScenario('china_stimulus')">中国刺激</div>
+      <div class="scenario-pill" onclick="loadScenario('tariff_war')">关税升级</div>
+      <div class="scenario-pill" onclick="loadScenario('goldilocks')">软着陆</div>
+    </div>
+
+    <div class="scenario-note" id="scenarioNote">
+      <div class="scenario-note-title" id="scenarioNoteTitle"></div>
+      <div id="scenarioNoteBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TUTORIAL OVERLAY -->
+<div class="tutorial-overlay" id="tutorialOverlay">
+  <div class="tutorial-card">
+    <div class="tutorial-progress">
+      <span class="tutorial-step-indicator">STEP <span id="tutStepNum">1</span> / 6</span>
+      <button class="tutorial-skip" onclick="skipTutorial()">跳过</button>
+    </div>
+    <div class="tutorial-title" id="tutTitle"></div>
+    <div class="tutorial-body" id="tutBody"></div>
+    <div class="tutorial-footer">
+      <button class="tutorial-back" id="tutBack" onclick="prevTutorial()">← 上一步</button>
+      <div class="tutorial-dots" id="tutDots"></div>
+      <button class="tutorial-next" id="tutNext" onclick="nextTutorial()">下一步 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TUTORIAL TRIGGER BUTTON -->
+<button class="tutorial-trigger" onclick="startTutorial()" title="打开教程">
+  <span style="font-size:11px">?</span>
+</button>
+
+<!-- 署名水印 -->
+<div class="signature-watermark">
+  <span style="opacity:0.5">©</span> <a href="https://github.com/wolf-cool" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">wolf_cool</a> <span style="opacity:0.4">· 2026</span>
+</div>
+
+<script>// =====================================================================
+// 全球宏观经济联动系统 - 数据层
+// 所有传导系数基于公开研究文献，重要数据标注来源
+// =====================================================================
+
+// 8 个杠杆 / 政策工具 (LEVERS)
+// 数值范围基于历史可观察区间
+const LEVERS = [
+  {
+    id: 'fed_rate', name: '美联储利率', en: 'Fed Funds Rate',
+    unit: '%', baseline: 4.5, min: 0, max: 8, step: 0.25,
+    description: '联邦基金利率目标',
+    historical: [
+      { val: 0.25, label: '2020 ZLB' },
+      { val: 5.5, label: '2023高点' },
+    ]
+  },
+  {
+    id: 'cpi', name: '美国通胀', en: 'CPI YoY',
+    unit: '%', baseline: 2.5, min: -1, max: 10, step: 0.1,
+    description: 'CPI同比，美联储隐含目标2%',
+    historical: [
+      { val: 9.1, label: '2022.6峰值' },
+      { val: -0.4, label: '2009通缩' },
+    ]
+  },
+  {
+    id: 'unemployment', name: '失业率', en: 'Unemployment',
+    unit: '%', baseline: 4.0, min: 2, max: 12, step: 0.1,
+    description: '美国失业率，自然失业率约4-4.5%',
+    historical: [
+      { val: 3.4, label: '2023低点' },
+      { val: 14.7, label: '2020.4 COVID' },
+    ]
+  },
+  {
+    id: 'us_tariff', name: '平均关税', en: 'US Avg Tariff',
+    unit: '%', baseline: 3, min: 0, max: 25, step: 0.5,
+    description: '美国进口加权平均关税率',
+    historical: [
+      { val: 1.5, label: '2017基准' },
+      { val: 17, label: '2025年情景' },
+    ]
+  },
+  {
+    id: 'oil_price', name: '油价 WTI', en: 'WTI Oil',
+    unit: '$', baseline: 75, min: 20, max: 150, step: 1,
+    description: 'WTI原油价格',
+    historical: [
+      { val: -37, label: '2020.4负值' },
+      { val: 130, label: '2022俄乌' },
+    ]
+  },
+  {
+    id: 'china_credit', name: '中国信贷脉冲', en: 'China Credit Impulse',
+    unit: '%', baseline: 0, min: -15, max: 15, step: 0.5,
+    description: '中国社融存量增速变化（领先全球工业6-9个月）',
+    historical: [
+      { val: 12, label: '2020刺激' },
+      { val: -10, label: '2018去杠杆' },
+    ]
+  },
+  {
+    id: 'fiscal_deficit', name: '美国财政赤字', en: 'US Fiscal Deficit',
+    unit: '%GDP', baseline: 6, min: 0, max: 15, step: 0.5,
+    description: '联邦赤字占GDP比例',
+    historical: [
+      { val: 14.7, label: '2020 COVID' },
+      { val: 2.4, label: '2007正常' },
+    ]
+  },
+  {
+    id: 'risk_event', name: '地缘风险', en: 'Geopolitical Risk',
+    unit: 'idx', baseline: 100, min: 50, max: 400, step: 5,
+    description: 'GPR指数 (Caldara & Iacoviello 2018)，纯地缘冲突/战争风险',
+    historical: [
+      { val: 350, label: '2003伊战' },
+      { val: 280, label: '2022俄乌' },
+    ]
+  },
+  {
+    id: 'policy_uncertainty', name: '政策不确定性', en: 'Policy Uncertainty',
+    unit: 'idx', baseline: 100, min: 50, max: 400, step: 5,
+    description: 'EPU指数 (Baker, Bloom & Davis 2016)，含贸易、税收、监管政策不确定性。与GPR分开，因关税战属政策冲击而非地缘冲突。',
+    historical: [
+      { val: 280, label: '2019贸易战' },
+      { val: 350, label: '2020 COVID' },
+    ]
+  },
+];
+
+// 28 个节点 (NODES)
+// 5层径向布局: ring 0=中心, 1=内圈, 2=中圈, 3=外圈, 4=最外
+// 每层用 angle 决定圆周位置
+const NODES = [
+  // ========== Layer 1: 货币基础 (内圈) ==========
+  {
+    id: 'global_liquidity', name: '全球流动性', en: 'Global Liquidity',
+    layer: 'l1', ring: 0, angle: 0,
+    description: '全球流动性是所有资产定价的"母变量"——其变化与全球风险资产价格的滚动相关性长期保持 0.85+。常用三种衡量框架：① <strong>Net Liquidity</strong>（Max Anderson 2022提出）= Fed Balance Sheet − TGA − RRP，反映美国银行体系内的实际可用流动性；② <strong>Lyn Alden 全球M2</strong> = 美/欧/日/中四大央行资产负债表 + 离岸美元信用；③ <strong>BIS 跨境美元信贷</strong>（约13万亿美元离岸美元贷款），美元强度通过这一渠道传导到每一个角落。<br><br>多重驱动：Fed 政策（边际定价者）、TGA/RRP 财政部账户、美元强度、中国信贷脉冲、各国央行 QE/QT、信用利差、Risk-On/Off。这些驱动相互作用，单一变量都不足以预测。',
+    drivers: ['monetary_policy ↓ → 流动性 ↑', 'fiscal_deficit ↑ (TGA↓) → 流动性 ↑', 'china_credit ↑ → 流动性 ↑', 'usd_index ↑ → 流动性 ↓', 'risk_appetite ↓ → 流动性 ↓'],
+    keyMetric: '全球M2 ≈ $100T · Fed BS ≈ $7T',
+    sensitivity: { fed_rate: -0.8, china_credit: 0.6, fiscal_deficit: 0.4, cpi: -0.2 },
+    evidence: [
+      { source: 'BIS Triennial Survey', year: '2022', body: '全球外汇日均交易量7.5万亿美元，美元参与88%的交易' },
+      { source: 'Borio & Disyatat (BIS)', year: '2015', body: '"Capital flows and the current account: Taking financing seriously"——证明跨境信贷扩张是金融周期核心驱动，独立于经常账户' },
+      { source: 'Anderson Net Liquidity', year: '2022', body: 'Max Anderson于2022年提出 Net Liquidity = Fed BS − TGA − RRP，初期与S&P 500相关性约0.95；2023后随市场计入此指标而相关性不稳定' },
+      { source: 'Boston Fed (Lopez-Salido & Vissing-Jorgensen)', year: '2018', body: 'TGA 变化 1 美元约对应银行准备金反向变化 1 美元，是被低估的流动性驱动' },
+    ]
+  },
+  {
+    id: 'usd_index', name: '美元指数', en: 'DXY',
+    layer: 'l1', ring: 1, angle: 90,
+    description: '美元相对六大主要货币的加权汇率，是全球流动性的反向指标。美元强→全球美元流动性收紧→新兴市场资产承压；美元弱→全球流动性扩张→风险资产受益。',
+    drivers: ['fed_rate↑→DXY↑', 'risk_event↑→DXY↑（避险）', 'cpi↑→DXY短期↑长期↓'],
+    keyMetric: 'DXY 100 = 1973基准',
+    sensitivity: { fed_rate: 0.6, risk_event: 0.3, cpi: 0.1 },
+    evidence: [
+      { source: 'Obstfeld & Zhou (NBER)', year: '2023', body: '美元升值10%使新兴市场GDP在1年内下降1.9%，影响持续约2.5年；发达经济体仅受影响0.6%且1年内消散' },
+      { source: 'IMF External Sector Report', year: '2023', body: '美元升值10%使全球经常账户余额一年内下降占世界GDP 0.4%' },
+    ]
+  },
+  {
+    id: 'gold', name: '黄金', en: 'Gold',
+    layer: 'l1', ring: 1, angle: 270,
+    description: '黄金不产生现金流，其定价核心是持有黄金的机会成本——即实际利率。实际利率越低，黄金越具吸引力。同时，黄金是终极去美元化资产和地缘风险对冲工具。',
+    drivers: ['real_rates↓→黄金↑', 'usd_index↓→黄金↑', 'risk_event↑→黄金↑'],
+    keyMetric: '与10Y TIPS相关性约 -0.7 到 -0.85（不同时段不同）',
+    sensitivity: { fed_rate: -0.4, cpi: 0.4, risk_event: 0.5, usd_index: -0.5 },
+    evidence: [
+      { source: 'Erb & Harvey (FAJ)', year: '2013', body: '"The Golden Dilemma"——黄金长期实际回报接近零，但作为通胀对冲在极端通胀时期有效' },
+      { source: 'World Gold Council', year: '2023', body: '2022年央行净购金1136吨创55年来最高纪录，2023年继续超千吨' },
+    ]
+  },
+  {
+    id: 'sovereign_fx', name: '非美货币篮子', en: 'Non-USD FX Basket',
+    layer: 'l1', ring: 1, angle: 180,
+    description: '加权篮子（DXY对应）：EUR(58%) + JPY(14%) + GBP(12%) + CAD/SEK/CHF。注意各货币驱动逻辑差异：①日元(JPY)是套息融资货币，risk-off时反常升值；②欧元(EUR)主要受欧美增长差和利差驱动；③人民币(CNY)未在DXY内但受PBoC政策管理。本节点关系仅适用于"加权基准"层面，单一货币需独立分析。',
+    drivers: ['DXY反向（定义）', '欧美利差', '增长差异'],
+    keyMetric: 'EUR/USD ≈ 1.05-1.10 区间',
+    sensitivity: { fed_rate: -0.3, cpi: -0.2, risk_event: -0.4 },
+    evidence: [
+      { source: 'Fama (JME)', year: '1984', body: '"Forward and spot exchange rates"——前向溢价之谜：高息货币应贬值的UIP在数据中常被违反，至今未完全解释' },
+      { source: 'BoJ / Reuters', year: '2024.8', body: '日元单月升值12%触发全球套息平仓，日经单日跌12.4%。注意此为JPY特殊属性（套息平仓），不适用于整篮子规律' },
+    ]
+  },
+
+  // ========== Layer 2: 经济运行 ==========
+  {
+    id: 'gdp_growth', name: 'GDP增长', en: 'GDP Growth',
+    layer: 'l2', ring: 2, angle: 30,
+    description: 'GDP增长是宏观体系的最终输出。通过Y=C+I+G+(X-M)分解，需求侧四大引擎：消费、投资、政府支出、净出口。潜在GDP取决于劳动+资本+TFP（全要素生产率）。',
+    drivers: ['unemployment↓→GDP↑', 'china_credit↑→GDP↑', 'us_tariff↑→GDP↓'],
+    keyMetric: '美国潜在增速≈1.8-2.0%',
+    sensitivity: { unemployment: -1.5, fed_rate: -0.4, china_credit: 0.3, us_tariff: -0.15, cpi: -0.1 },
+    evidence: [
+      { source: 'Okun\'s Law', year: '1962', body: '失业率每上升1个百分点，GDP相对潜在产出下降约2个百分点（美国基准系数）' },
+      { source: 'IMF WEO', year: '2024', body: '2025年全球GDP预测中位数约3.2%，发达经济体约1.7%，新兴市场约4.2%' },
+    ]
+  },
+  {
+    id: 'inflation', name: '通胀压力', en: 'Inflation',
+    layer: 'l2', ring: 2, angle: 60,
+    description: '通胀的来源：①需求拉动（产出缺口正）；②成本推动（油价、工资）；③货币因素（流动性）；④预期自我实现。核心PCE是美联储首选指标，剔除能源和食品。',
+    drivers: ['oil_price↑→通胀↑', 'unemployment↓→通胀↑', 'fiscal_deficit↑→通胀↑'],
+    keyMetric: 'Fed目标 2%',
+    sensitivity: { oil_price: 0.3, unemployment: -0.5, us_tariff: 0.4, fiscal_deficit: 0.2, china_credit: 0.15 },
+    evidence: [
+      { source: 'Phillips Curve (Phillips 1958)', year: '1958', body: '失业率与工资通胀的负相关，菲利普斯曲线在1970-2019年间显著平坦化（"消失之谜"），2021后再度变陡' },
+      { source: 'Cavallo, Gopinath, Neiman, Tang (AER Insights)', year: '2021', body: '2018-2019关税到进口商支付价格几乎完全传导（20%关税→进口商价格+18.9%），但到零售价格传导不完整（一年后<5%）。Goldman Sachs (2025)估计美国消费者承担约55%、企业22%、外国出口商18%' },
+    ]
+  },
+  {
+    id: 'unemployment_rate', name: '失业率', en: 'Unemployment Rate',
+    layer: 'l2', ring: 2, angle: 120,
+    description: '美国失业率，标准 BLS U-3 口径——失业人数占劳动力的百分比。值越高=就业市场越差、工资压力越小。NAIRU（自然失业率）当前估计约4-4.5%，是中性参考点。配套指标：非农就业(NFP)、JOLTS职位空缺、初请失业金、ECI雇佣成本指数。Sahm Rule（失业率3个月均值高于12月低点0.5%）是衰退实时指标，1948以来零误报。',
+    drivers: ['gdp_growth↑→失业率↓ (Okun)', 'fed_rate↑→失业率↑（滞后6-12月）'],
+    keyMetric: 'NAIRU ≈ 4-4.5%',
+    sensitivity: { fed_rate: 0.3, gdp_growth: -0.6, us_tariff: 0.1 },
+    evidence: [
+      { source: 'Sahm Rule', year: '2019', body: '失业率3个月均值高于12月低点0.5%即触发衰退信号——历史上1948年以来零误报' },
+      { source: 'Beveridge Curve', year: '2022-23', body: '2022年职位空缺率达到7.4%创历史新高，疫情后曲线外移意味着同等失业率下劳动力市场更紧张' },
+    ]
+  },
+  {
+    id: 'trade_flows', name: '贸易资本流动', en: 'Trade & Capital Flows',
+    layer: 'l2', ring: 2, angle: 150,
+    description: '国际收支由经常账户（贸易+服务+收入）和资本账户构成，两者必须平衡。美国长期经常账户逆差约GDP 3-4%，由资本流入融资——这正是美元储备货币的"特权"。',
+    drivers: ['usd_index→贸易', 'us_tariff↑→贸易↓', 'china_credit↑→出口↑'],
+    keyMetric: '美国经常账户≈-3.5% GDP',
+    sensitivity: { usd_index: -0.4, us_tariff: -0.6, china_credit: 0.3 },
+    evidence: [
+      { source: 'Bernanke "Global Saving Glut"', year: '2005', body: '亚洲高储蓄输出至美国压低全球长期利率，是2000年代利率持续低迷的结构性原因' },
+      { source: 'Fajgelbaum et al. (QJE)', year: '2020', body: '2018-2019年Trump关税对美国福利净损失年化78亿美元，证明贸易战双输' },
+    ]
+  },
+
+  // ========== Layer 3: 政策调控 ==========
+  {
+    id: 'monetary_policy', name: '货币政策立场', en: 'Monetary Stance',
+    layer: 'l3', ring: 3, angle: 0,
+    description: '央行通过利率、QE/QT、前瞻指引三大工具调控经济。Taylor Rule(1993)给出反应函数：i = r* + π + 0.5(π-π*) + 0.5(y_gap)。当前实际政策与规则的偏离度，决定政策立场是否合适。',
+    drivers: ['cpi偏离2%目标', 'unemployment偏离NAIRU', '金融稳定考量'],
+    keyMetric: 'Taylor Rule隐含利率',
+    sensitivity: { cpi: 0.7, unemployment: -0.4, gdp_growth: 0.3 },
+    evidence: [
+      { source: 'Taylor (Carnegie-Rochester)', year: '1993', body: 'Taylor Rule原始论文：1987-1992年实际美联储政策与规则吻合，2003-2005年偏低被认为是房地产泡沫成因之一' },
+      { source: 'Fed FOMC', year: '2022-2023', body: '美联储1年内加息525bp（5月)+75bp×4连续加息，是1980年Volcker之后最快紧缩节奏' },
+    ]
+  },
+  {
+    id: 'fiscal_policy', name: '财政政策', en: 'Fiscal Policy',
+    layer: 'l3', ring: 3, angle: 60,
+    description: '政府支出、税收、转移支付影响总需求。财政乘数在衰退期约1.5-2，繁荣期约0.5-1（Auerbach & Gorodnichenko）。当前美债/GDP突破120%，利息支出年约1万亿，债务可持续性条件r<g承压。',
+    drivers: ['fiscal_deficit设定', '自动稳定器'],
+    keyMetric: '美债/GDP ≈ 122%',
+    sensitivity: { fiscal_deficit: 1.0 },
+    evidence: [
+      { source: 'Blanchard & Leigh (IMF)', year: '2013', body: '欧洲2010-2011年财政紧缩的GDP损失是预测的3倍——证明衰退期财政乘数被严重低估' },
+      { source: 'Truss-Kwarteng UK', year: '2022.9', body: '英国"迷你预算"宣布450亿英镑减税不配套财源，3周内30Y英债收益率上行150bp，迫使BoE紧急购债，首相被迫辞职' },
+    ]
+  },
+  {
+    id: 'china_policy', name: '中国宏观调控', en: 'China Macro Policy',
+    layer: 'l3', ring: 3, angle: 120,
+    description: '中国通过PBoC利率(MLF/LPR)、社融、地方政府专项债、房地产限购等多工具调控经济。社融存量增速变化（信贷脉冲）领先全球工业生产约6-9个月，是全球大宗商品需求的关键预测指标。',
+    drivers: ['china_credit设定', '房地产政策', '汇率管理'],
+    keyMetric: 'CNY中间价管理',
+    sensitivity: { china_credit: 1.0 },
+    evidence: [
+      { source: 'BIS Working Paper 1011', year: '2022', body: '中国信贷脉冲与全球工业生产同比增速的相关性（领先6-9个月）约0.7' },
+      { source: 'PBoC', year: '2024', body: '2024年9月一揽子刺激（降准50bp+降存量按揭利率+5000亿股市互换工具）单日推动恒指涨6.2%' },
+    ]
+  },
+
+  // ========== Layer 4: 金融市场 ==========
+  {
+    id: 'us_treasury', name: '美债收益率', en: 'UST Yields',
+    layer: 'l4', ring: 4, angle: 30,
+    description: '10年期美债收益率是全球无风险利率锚。可分解为：实际利率(TIPS) + 通胀预期(BEI) + 期限溢价(Term Premium)。曲线形态（10Y-2Y）是最重要的衰退领先指标之一。',
+    drivers: ['fed_rate↑→短端↑', 'cpi↑→长端↑', 'fiscal_deficit↑→长端↑'],
+    keyMetric: '10Y UST 4.5%（2024）',
+    sensitivity: { fed_rate: 0.6, cpi: 0.4, fiscal_deficit: 0.2, risk_event: -0.3 },
+    evidence: [
+      { source: 'NY Fed Liberty Street', year: '2018', body: '收益率曲线（10Y-3M）作为衰退领先指标自1960年以来表现良好，1966年曾出现假信号（短暂倒挂未引发衰退）；近 8 次衰退每次前都有倒挂，但倒挂到衰退的时滞 6-24 个月不等' },
+      { source: 'Bloomberg US Treasury Index / McQuarrie', year: '2022', body: 'Bloomberg US Treasury Index 全年 -12.5%，1973年指数成立以来最差。长期30Y零息债券跌-39.2%，按历史数据回溯是1754年以来最差' },
+    ]
+  },
+  {
+    id: 'us_equity', name: '美股', en: 'US Equities',
+    layer: 'l4', ring: 4, angle: 0,
+    description: '股价 = 盈利(EPS) × 估值(PE)。无风险利率上升会同时压低估值（DCF分母）和影响盈利。Bernanke-Kuttner研究确立了利率对股市的传导基准：未预期降息25bp约对应股指1%上涨。',
+    drivers: ['fed_rate↓→股市↑', 'gdp_growth↑→EPS↑', 'global_liquidity↑→PE↑'],
+    keyMetric: '标普500 PE ≈ 22-25x',
+    sensitivity: { fed_rate: -1.0, cpi: -0.4, gdp_growth: 1.0, risk_event: -0.5, us_tariff: -0.2 },
+    evidence: [
+      { source: 'Bernanke & Kuttner (JF)', year: '2005', body: '"What Explains the Stock Market\'s Reaction to Federal Reserve Policy?" 未预期降息25bp使标普500上涨约1%——经典基准研究' },
+      { source: 'Shiller CAPE Data', year: '1881-2024', body: 'CAPE > 30x对应后续10年实际年化回报中位数约2%；CAPE < 10x对应约14%' },
+    ]
+  },
+  {
+    id: 'commodities', name: '大宗商品', en: 'Commodities',
+    layer: 'l4', ring: 4, angle: 60,
+    description: '能源(60%)、工业金属(20%)、农产品(20%)。铜被称为"铜博士"——因其工业用途广泛而成为全球经济领先指标。大宗商品定价：美元↓→大宗↑（计价效应），中国需求是主要工业金属定价的核心。',
+    drivers: ['usd_index↓→大宗↑', 'china_credit↑→金属↑', 'oil_price自身'],
+    keyMetric: '铜消费中国占55%',
+    sensitivity: { usd_index: -0.5, china_credit: 0.6, oil_price: 0.4 },
+    evidence: [
+      { source: 'BIS QR (Rees)', year: '2023', body: '美元升值10%使非美油价（折算后）上涨约18%——美元-大宗负相关在2020年后弱化' },
+      { source: 'Gorton & Rouwenhorst (FAJ)', year: '2006', body: '大宗商品期货长期回报与股票相当但相关性低，是组合分散化的重要资产类' },
+    ]
+  },
+  {
+    id: 'em_assets', name: '新兴市场资产', en: 'EM Assets',
+    layer: 'l4', ring: 4, angle: 90,
+    description: '新兴市场股债汇受美元周期、商品周期、风险偏好三重驱动。Eichengreen "原罪论"：EM国家无法以本币借入长期外债，美元升值时外债负担急剧加重。MSCI EM中国权重约25%、印度17%、台韩合计约35%。',
+    drivers: ['usd_index↓→EM↑', 'china_credit↑→EM↑', 'risk_event↑→EM↓'],
+    keyMetric: 'MSCI EM 24国',
+    sensitivity: { usd_index: -1.5, fed_rate: -0.8, china_credit: 0.5, risk_event: -1.0 },
+    evidence: [
+      { source: 'Obstfeld & Zhou (NBER)', year: '2023', body: '美元升值10%使新兴市场股票（本币）下跌约5-6%，跨境组合流入下降约GDP的1.5%' },
+      { source: 'IMF Taper Tantrum data', year: '2013', body: '2013.5伯南克暗示缩减QE后4个月内，"脆弱五国"(BR/IN/ID/TR/ZA)货币贬值15-20%，证明EM对美联储政策的极度敏感' },
+    ]
+  },
+  {
+    id: 'credit_spread', name: '信用利差', en: 'HY Credit Spread',
+    layer: 'l4', ring: 4, angle: 120,
+    description: '高收益债相对国债的额外收益，是市场风险情绪的温度计。HY利差>600bp时后续12个月衰退概率约75%。信用利差领先股市转折约3-6个月，是重要的领先指标。',
+    drivers: ['gdp_growth↓→利差↑', 'global_liquidity↓→利差↑', 'risk_event↑→利差↑'],
+    keyMetric: '当前HY OAS≈350bp',
+    sensitivity: { fed_rate: 0.3, gdp_growth: -0.8, risk_event: 0.5, unemployment: 0.4 },
+    evidence: [
+      { source: 'Gilchrist & Zakrajšek (AER)', year: '2012', body: '"Credit Spreads and Business Cycle Fluctuations"——超额债券溢价(EBP)是最强的金融压力指标，领先工业生产6个月' },
+      { source: 'ICE BofA HY Index', year: '2008-2020', body: '2008.10 HY利差峰值1971bp；2020.3 COVID峰值1087bp；正常区间300-500bp' },
+    ]
+  },
+  {
+    id: 'real_rates', name: '实际利率', en: 'Real Rates / TIPS',
+    layer: 'l4', ring: 4, angle: 150,
+    description: '实际利率 = 名义利率 − 通胀预期（Fisher方程）= TIPS收益率。两条独立传导路径：① 名义利率渠道——美联储加息、美债收益率上行直接推升 r；② 通胀预期渠道——通胀预期上升（10Y BEI breakeven inflation）会压低实际利率（即使名义不变）。这是黄金、长久期资产、增长股估值的关键变量——它代表持有"无现金流资产"的真实机会成本。实际利率为负时（如2020-2022年），黄金、加密货币、长久期科技股表现卓越。',
+    drivers: ['nominal_rates ↑ → real_rates ↑', 'inflation_expectation ↑ → real_rates ↓'],
+    keyMetric: '10Y TIPS≈2%（2024）',
+    sensitivity: { fed_rate: 0.7, cpi: -0.3 },
+    evidence: [
+      { source: 'Fed Reserve TIPS Data', year: '1997-2024', body: 'TIPS于1997年首次发行。2020年实际利率达-1.2%历史低点，对应金价突破2000美元' },
+      { source: 'Fama / Fisher Equation', year: '1975', body: 'Fisher方程 i = r + π^e，实际利率 r = i − π^e 才是真正的资金成本' },
+      { source: 'NY Fed BEI Data', year: '2020-2024', body: '10Y breakeven inflation从1.0%(2020.3)升至2.6%(2022.4)再回落至2.3%，是通胀预期的市场指标' },
+    ]
+  },
+
+  // ========== Layer 5: 资产定价框架 ==========
+  {
+    id: 'risk_appetite', name: '风险偏好', en: 'Risk-On / Risk-Off',
+    layer: 'l5', ring: 5, angle: 30,
+    description: 'Risk-On/Off是资金全球流动的核心框架。VIX是衡量Risk-Off的最广泛指标：<15正常、>30恐慌、>40极度恐慌。Risk-On时资金从避险资产(美债/黄金/JPY/USD)流向风险资产(股票/EM/HY)。',
+    drivers: ['credit_spread↑→Risk-Off', 'risk_event↑→Risk-Off', 'global_liquidity↓→Risk-Off'],
+    keyMetric: 'VIX 12-20正常',
+    sensitivity: { risk_event: 0.7, fed_rate: 0.3, credit_spread: 0.6, gdp_growth: -0.5 },
+    evidence: [
+      { source: 'CBOE VIX Historical', year: '1990-2024', body: '历史VIX峰值：2008.10(89)、2020.3(85)、2018.2(50)；30以上发生概率约5%（年化）' },
+      { source: 'BlackRock Investment Institute', year: '2023', body: '股债相关性在通胀>2.5%时由负转正——2022年股债同跌打破60/40组合40年的有效性' },
+    ]
+  },
+  {
+    id: 'asset_allocation', name: '大类配置框架', en: 'Asset Allocation',
+    layer: 'l5', ring: 5, angle: 60,
+    description: '美林时钟(2004)将经济周期四阶段与最优资产匹配：复苏→股票，过热→大宗，滞胀→现金，衰退→债券。但2008年后QE扭曲了时钟。当前主流是"流动性时钟"+"传统时钟"双层叠加。',
+    drivers: ['gdp_growth方向', 'cpi方向', 'global_liquidity方向'],
+    keyMetric: '60/40组合长期年化7-8%',
+    sensitivity: { gdp_growth: 0.5, cpi: -0.3, global_liquidity: 0.4 },
+    evidence: [
+      { source: 'ML Investment Clock', year: '2004', body: '美林时钟原始回测(1973-2004)：过热期商品+19.7%、衰退期债券+12.3%、复苏期股票+19.0%（年化）' },
+      { source: 'Ray Dalio All Weather', year: '2008-', body: '基于经济四象限(增长/衰退×通胀/通缩)构建的全天候组合，在2022年股债同跌中表现欠佳，反思框架更新' },
+    ]
+  },
+  {
+    id: 'cycle_position', name: '周期定位', en: 'Cycle Position',
+    layer: 'l5', ring: 5, angle: 90,
+    description: '判断经济处于周期哪一阶段，是所有宏观决策的起点。复苏→过热→滞胀→衰退四阶段循环。通过PMI、收益率曲线、信贷利差、劳动力市场紧张度等领先指标综合判断。',
+    drivers: ['增长方向', '通胀方向'],
+    keyMetric: 'PMI 50荣枯线',
+    sensitivity: { gdp_growth: 0.6, cpi: 0.3 },
+    evidence: [
+      { source: 'NBER Business Cycle Dating Committee', year: '1854-2024', body: 'NBER是美国官方衰退认定机构，使用GDP/收入/就业/工业生产等多指标，平均衰退持续11个月，扩张约59个月' },
+      { source: 'Estrella & Mishkin (NY Fed)', year: '1996', body: '原始论文用1960Q1-1995Q1数据估计：10Y-3M期限利差给出衰退概率模型（如利差倒挂30bp对应未来4季度衰退概率约30%）。Fed官方衰退概率模型至今沿用此框架' },
+    ]
+  },
+  {
+    id: 'cross_asset', name: '跨资产钩稽', en: 'Cross-Asset Linkages',
+    layer: 'l5', ring: 5, angle: 120,
+    description: '跨资产关系：股债相关性（通胀体制依赖）、铜金比与利率、美元-大宗、HY利差与股市、TIPS与黄金。这些钩稽关系在正常市场中有效，在流动性危机中会断裂（2020.3）。',
+    drivers: ['通胀体制', '流动性状态'],
+    keyMetric: '铜金比与10Y r ≈ 0.75',
+    sensitivity: { cpi: 0.4, global_liquidity: 0.3 },
+    evidence: [
+      { source: 'Campbell, Pflueger, Viceira (JF)', year: '2017', body: '"Macroeconomic Drivers of Bond and Equity Risks"——通胀>2.5%阈值时股债相关性由负转正，2022年完美验证' },
+      { source: 'DoubleLine / Gundlach', year: '2018', body: '铜金比与10年期美债收益率的滚动相关性约0.75，被广泛用作利率走势的领先指标' },
+    ]
+  },
+  {
+    id: 'institutional_flows', name: '机构流动', en: 'Institutional Flows',
+    layer: 'l5', ring: 5, angle: 150,
+    description: '主权财富基金10万亿、被动指数基金超过主动、CTA趋势策略1-2万亿、期权做市商Gamma对冲——这些机构行为是市场流动性结构的主体。同质化持仓在尾部风险时是放大器。',
+    drivers: ['institutional positioning', 'gamma exposure'],
+    keyMetric: 'SWF≈10T USD',
+    sensitivity: { risk_event: -0.4, global_liquidity: 0.3 },
+    evidence: [
+      { source: 'Bank of England', year: '2022.10', body: '英国LDI养老金危机：长债收益率急升200bp触发3000亿英镑LDI抛售，BoE被迫紧急购债650亿英镑' },
+      { source: 'BIS / SWF Institute', year: '2024', body: '全球主权财富基金管理资产规模约10.5万亿美元，挪威GPFG (1.7T)、CIC (1.4T)、ADIA (1T)是最大' },
+    ]
+  },
+];
+
+// 边 (EDGES) - 节点间因果关系
+// strength: 系数绝对值；sign: + 正向, - 负向
+// source: 实证依据简短引用
+const EDGES = [
+  // 中心向第一圈
+  { from: 'global_liquidity', to: 'usd_index', strength: 0.7, sign: -1, type: 'causal', mechanism: '流动性扩张→美元相对走弱', source: 'BIS研究' },
+  { from: 'global_liquidity', to: 'gold', strength: 0.6, sign: 1, type: 'regime', mechanism: '流动性宽松→实际利率↓→金价↑', source: '历史相关性' },
+  { from: 'global_liquidity', to: 'sovereign_fx', strength: 0.3, sign: 1, type: 'causal', mechanism: '间接：流动性宽松→风险偏好↑→非美货币边际受益（解释力弱，仅作篮子层面）' },
+
+  // 第一圈内部
+  { from: 'usd_index', to: 'gold', strength: 0.5, sign: -1, type: 'causal', mechanism: '美元↑→金价↓（计价效应）', source: '相关性约-0.4' },
+  { from: 'usd_index', to: 'sovereign_fx', strength: 0.7, sign: -1, type: 'causal', mechanism: '镜像关系，美元↑则其他货币↓' },
+
+  // 第一圈→第二圈
+  { from: 'usd_index', to: 'trade_flows', strength: 0.6, sign: -1, type: 'causal', mechanism: '美元↑使美国出口承压，进口便宜', source: 'Obstfeld 2023' },
+  { from: 'usd_index', to: 'inflation', strength: 0.3, sign: -1, type: 'regime', mechanism: '强美元降低进口通胀（需考虑滞后）' },
+  { from: 'sovereign_fx', to: 'trade_flows', strength: 0.5, sign: 1, type: 'causal', mechanism: '本币贬值利好出口' },
+
+  // 第二圈内部 - 核心三角
+  { from: 'unemployment_rate', to: 'inflation', strength: 0.5, sign: -1, type: 'regime', mechanism: '失业率↓（劳动力市场紧张）→工资↑→通胀↑（菲利普斯曲线，2010-2019平坦化但2021后再陡峭）', source: 'Phillips 1958' },
+  { from: 'inflation', to: 'gdp_growth', strength: 0.3, sign: -1, type: 'regime', mechanism: '高通胀侵蚀实际购买力', source: 'IMF研究' },
+  { from: 'gdp_growth', to: 'unemployment_rate', strength: 0.6, sign: -1, type: 'causal', mechanism: '增长↑→失业率↓（Okun定律：GDP增速每超潜在产出1pp，失业率下降约0.5pp）', source: 'Okun 1962' },
+  { from: 'trade_flows', to: 'gdp_growth', strength: 0.3, sign: 1, type: 'causal', mechanism: '净出口是GDP组成部分' },
+
+  // 第二圈→第三圈
+  { from: 'inflation', to: 'monetary_policy', strength: 0.8, sign: 1, type: 'causal', mechanism: '通胀↑→央行收紧（Taylor Rule）', source: 'Taylor 1993' },
+  { from: 'unemployment_rate', to: 'monetary_policy', strength: 0.5, sign: -1, type: 'causal', mechanism: '失业率↑→央行宽松（Fed双重使命：就业+物价稳定）' },
+  // 失业-增长反馈：失业率上升直接拖累消费和增长（Okun 反向通道）
+  { from: 'unemployment_rate', to: 'gdp_growth', strength: 0.7, sign: -1, type: 'causal', mechanism: '失业率↑→消费↓+收入↓→GDP↓（Okun定律反向通道）', source: 'Okun 1962' },
+  // 信用利差是衰退最强领先指标
+  { from: 'credit_spread', to: 'gdp_growth', strength: 0.6, sign: -1, type: 'causal', mechanism: '信用利差扩大→企业借贷成本↑→投资↓→GDP↓', source: 'Gilchrist-Zakrajšek 2012: EBP 领先 IP 6 个月' },
+  // 风险偏好崩塌→消费投资双降
+  { from: 'risk_appetite', to: 'gdp_growth', strength: 0.4, sign: 1, type: 'causal', mechanism: 'Risk-Off → 财富效应负反馈 + 投资延迟 → GDP↓' },
+  // 财政政策是 GDP 的主要顺周期支持
+  { from: 'fiscal_policy', to: 'gdp_growth', strength: 0.55, sign: 1, type: 'causal', mechanism: '财政扩张→总需求↑（Blanchard-Leigh: 衰退期乘数 1.5-2）', source: 'Blanchard-Leigh 2013' },
+  // 全球流动性紧张直接拖累全球增长
+  { from: 'global_liquidity', to: 'gdp_growth', strength: 0.4, sign: 1, type: 'causal', mechanism: '全球美元流动性是世界 GDP 增长的金融条件锚' },
+  { from: 'gdp_growth', to: 'monetary_policy', strength: 0.4, sign: 1, type: 'causal', mechanism: '产出缺口正→央行考虑收紧' },
+  { from: 'gdp_growth', to: 'fiscal_policy', strength: 0.5, sign: -1, type: 'causal', mechanism: '衰退期自动稳定器扩大赤字' },
+
+  // 第三圈→第四圈
+  { from: 'monetary_policy', to: 'us_treasury', strength: 0.8, sign: 1, type: 'causal', mechanism: '加息直接抬升短端，曲线整体上移', source: '直接政策传导' },
+  { from: 'monetary_policy', to: 'real_rates', strength: 0.7, sign: 1, type: 'causal', mechanism: '加息使实际利率上升' },
+  { from: 'monetary_policy', to: 'us_equity', strength: 0.35, sign: -1, type: 'regime', mechanism: '加息→DCF折现率↑→估值压缩；但经济衰退时被动宽松未必利好（取决于市场对央行 reaction function 的解读）', source: 'Bernanke-Kuttner 2005' },
+  { from: 'fiscal_policy', to: 'us_treasury', strength: 0.4, sign: 1, type: 'causal', mechanism: '赤字↑→国债供给↑→长端收益率↑' },
+  { from: 'fiscal_policy', to: 'inflation', strength: 0.4, sign: 1, type: 'causal', mechanism: '财政扩张推高总需求和通胀' },
+  { from: 'china_policy', to: 'commodities', strength: 0.7, sign: 1, type: 'causal', mechanism: '信贷扩张→基建/地产→工业金属需求↑（铜、铁矿石）', source: 'BIS WP 1011' },
+  { from: 'china_policy', to: 'em_assets', strength: 0.6, sign: 1, type: 'causal', mechanism: '中国刺激外溢提振资源型EM（巴西、澳洲、印尼）', source: '历史相关性' },
+  { from: 'china_policy', to: 'global_liquidity', strength: 0.5, sign: 1, type: 'causal', mechanism: '中国信贷扩张是全球流动性的重要组成部分（中国占全球GDP 17%）' },
+  // === 全球流动性的复杂驱动（修正：原模型严重低估了驱动复杂性）===
+  // Fed 是全球美元流动性的主要边际定价者
+  { from: 'monetary_policy', to: 'global_liquidity', strength: 0.85, sign: -1, type: 'causal', mechanism: 'Fed紧缩→美元回流→全球流动性收缩 (Net Liquidity = Fed BS − TGA − RRP, Anderson 2022 框架)', source: 'Anderson 2022 / FRED' },
+  // 财政部 TGA 账户消耗会从银行体系抽走流动性（反之亦然）
+  { from: 'fiscal_policy', to: 'global_liquidity', strength: 0.45, sign: 1, type: 'causal', mechanism: '财政赤字↑→TGA下降→银行准备金释放→流动性扩张 (Boston Fed 2018: $1B TGA变化≈$1B 准备金反向变化)', source: 'Boston Fed 2018' },
+  // USD 强度：美元↑会通过欧洲美元市场、跨境信贷收缩全球流动性
+  { from: 'usd_index', to: 'global_liquidity', strength: 0.55, sign: -1, type: 'causal', mechanism: '美元↑→约13万亿美元离岸美元贷款偿还成本↑→信用收缩→流动性下降', source: 'BIS Borio & Disyatat 2015' },
+  // 信用利差扩大反映流动性紧张（双向反馈）
+  { from: 'credit_spread', to: 'global_liquidity', strength: 0.35, sign: -1, type: 'causal', mechanism: 'HY信用利差扩大→风险定价上升→银行收紧授信→流动性收缩' },
+  // 风险偏好崩塌→全球去风险→美元回流避险→流动性收缩
+  { from: 'risk_appetite', to: 'global_liquidity', strength: 0.3, sign: 1, type: 'regime', mechanism: 'Risk-Off时美元回流避险，全球美元流动性边际收紧（极端情形如2008/2020）' },
+  { from: 'china_policy', to: 'sovereign_fx', strength: 0.4, sign: 1, type: 'causal', mechanism: '宽松周期人民币承压，但稳汇率管理是常态工具' },
+  { from: 'china_policy', to: 'trade_flows', strength: 0.4, sign: 1, type: 'causal', mechanism: '产能扩张→出口增加→贸易顺差扩大' },
+
+  // 第四圈内部
+  { from: 'us_treasury', to: 'real_rates', strength: 0.7, sign: 1, type: 'causal', mechanism: '名义利率上升传导至实际利率' },
+  { from: 'us_treasury', to: 'us_equity', strength: 0.5, sign: -1, type: 'causal', mechanism: '收益率↑→估值倍数压缩' },
+  { from: 'real_rates', to: 'gold', strength: 0.85, sign: -1, type: 'causal', mechanism: '实际利率是黄金最强单因子驱动；持有黄金的机会成本=放弃的实际利率', source: '历史 TIPS-金价相关性约 -0.7 到 -0.85（FRED 数据）' },
+  { from: 'real_rates', to: 'us_equity', strength: 0.6, sign: -1, type: 'causal', mechanism: '实际利率是DCF分母的真实部分' },
+  { from: 'real_rates', to: 'em_assets', strength: 0.5, sign: -1, type: 'causal', mechanism: '高实际利率使EM资产相对吸引力下降' },
+  // 共同驱动模式：增长↑同时利好股票和大宗，两者的相关性是共振而非因果
+  { from: 'gdp_growth', to: 'us_equity', strength: 0.7, sign: 1, type: 'causal', mechanism: '增长↑→盈利预期↑→EPS↑→股价↑（DCF 分子）；衰退期 EPS 收缩是股市下跌的核心驱动', source: '历史: 标普 EPS 与 GDP 相关性 ≈ 0.7' },
+  { from: 'gdp_growth', to: 'commodities', strength: 0.4, sign: 1, type: 'causal', mechanism: '增长↑→工业需求↑→大宗商品↑（尤其能源、铜）', source: 'PMI与铜价相关性约0.6' },
+  // 注：us_equity ↔ commodities 之间存在共振相关性（约0.3-0.5），但属"共同驱动"而非因果
+  // 为保持因果纯度，不在两者之间画直接边
+  { from: 'credit_spread', to: 'us_equity', strength: 0.75, sign: -1, type: 'causal', mechanism: '信用利差是衰退最强领先指标，2008/2020 危机中股市与利差近完全反向', source: 'Gilchrist-Zakrajšek 2012' },
+  { from: 'usd_index', to: 'commodities', strength: 0.5, sign: -1, type: 'causal', mechanism: '美元↑→商品（美元计价）↓', source: 'BIS QR 2023' },
+  { from: 'usd_index', to: 'em_assets', strength: 0.7, sign: -1, type: 'causal', mechanism: '美元↑→EM资本外流→EM资产↓', source: 'Obstfeld-Zhou 2023' },
+
+  // 第四圈→第五圈
+  { from: 'credit_spread', to: 'risk_appetite', strength: 0.7, sign: -1, type: 'causal', mechanism: '信用利差扩大是Risk-Off的核心信号' },
+  { from: 'us_equity', to: 'risk_appetite', strength: 0.4, sign: 1, type: 'regime', mechanism: '股市表现是风险偏好的市场反映' },
+  { from: 'gdp_growth', to: 'cycle_position', strength: 0.7, sign: 1, type: 'causal', mechanism: '增长方向决定周期位置' },
+  { from: 'inflation', to: 'cycle_position', strength: 0.5, sign: 1, type: 'causal', mechanism: '通胀方向决定阶段（过热/滞胀）' },
+  { from: 'cycle_position', to: 'asset_allocation', strength: 0.7, sign: 1, type: 'causal', mechanism: '美林时钟核心：周期决定配置' },
+  { from: 'risk_appetite', to: 'asset_allocation', strength: 0.6, sign: 1, type: 'causal', mechanism: 'Risk 偏好直接决定股债权重' },
+  // risk_appetite 是连接政策冲击和资产价格的核心枢纽：
+  { from: 'risk_appetite', to: 'us_equity', strength: 0.85, sign: 1, type: 'causal', mechanism: 'Risk-On → 风险溢价↓ → 股市估值↑；Risk-Off 是危机期间股市的主导因素（VIX 与标普负相关 ≈ -0.7）', source: 'CBOE VIX 历史数据' },
+  { from: 'risk_appetite', to: 'em_assets', strength: 0.85, sign: 1, type: 'causal', mechanism: 'Risk-On → 资金流入 EM → EM 资产估值↑；Risk-Off 时 EM 资本外流是 EM 资产承压最直接的渠道（EM 对全球风险偏好高度敏感，2008/2013 taper tantrum/2020 都验证）' },
+  { from: 'risk_appetite', to: 'credit_spread', strength: 0.85, sign: -1, type: 'causal', mechanism: 'Risk-Off → 信用利差扩大（Risk-On/Off 与利差是同一硬币两面）' },
+  { from: 'risk_appetite', to: 'commodities', strength: 0.5, sign: 1, type: 'causal', mechanism: 'Risk-On → 工业商品需求和投机性持仓上升（铜尤其敏感）' },
+  { from: 'global_liquidity', to: 'institutional_flows', strength: 0.4, sign: 1, type: 'correlation', mechanism: '流动性影响机构杠杆和仓位' },
+  { from: 'institutional_flows', to: 'cross_asset', strength: 0.5, sign: 1, type: 'correlation', mechanism: '机构同质化持仓影响相关性' },
+
+  // === Correlation 边：共振关系，不是严格因果，画为点线 ===
+  // 这些边对应"市场常识"中常被误以为是因果的关系，标注为"共振"提醒用户
+  { from: 'us_equity', to: 'commodities', strength: 0.35, sign: 1, type: 'correlation', mechanism: '【共振·非因果】Risk-On时同涨、Risk-Off时同跌；2008/2020 流动性危机中两者同跌。共同驱动是 growth + risk_appetite，不是直接因果' },
+  { from: 'gold', to: 'us_treasury', strength: 0.3, sign: -1, type: 'correlation', mechanism: '【共振·非因果】危机避险时金价↑、UST收益率↓（价格↑），表面"反向相关"实为共同响应 Risk-Off + Fed 降息预期' },
+  { from: 'em_assets', to: 'commodities', strength: 0.4, sign: 1, type: 'correlation', mechanism: '【共振·非因果】资源型EM (BR/AU/IDN) 出口商品，与商品周期同步；但中国/印度等制造业EM 反而在商品熊市中受益。资源型EM占MSCI EM约30%' },
+
+  // 反馈环
+  { from: 'risk_event', to: 'gold', strength: 0.4, sign: 1, type: 'causal', mechanism: '地缘风险→避险买金' },
+  { from: 'us_equity', to: 'gdp_growth', strength: 0.2, sign: 1, type: 'correlation', mechanism: '【共振·弱反馈】财富效应：股市上涨→消费信心↑→GDP，但因果方向通常是 GDP→股市 居主导' },
+];
+
+// 杠杆→节点的直接影响（first-order）
+// 这些是杠杆调整时直接传导的初始冲击，二阶传导通过EDGES网络计算
+// 系数基于经验性研究（标注来源）
+const LEVER_DIRECT = {
+  fed_rate: {  // 单位：每升1个百分点
+    'monetary_policy': { coef: 1.0, note: '直接定义：Fed 利率立场即货币政策本身' },
+    'us_treasury': { coef: 0.7, note: 'Fed→2Y 短端传导约 70%（长端反映预期）' },
+    'real_rates': { coef: 0.5, note: 'Fed 政策直接推升实际利率（剔除通胀预期）' },
+    'unemployment_rate': { coef: 0.15, note: '滞后 6-18 月，单位为失业率 pp' },
+    // us_equity / gold / em_assets / usd_index / global_liquidity 都通过
+    // monetary_policy / us_treasury / real_rates 等节点间接传导
+    // 这样避免"杠杆超广播"导致的双重计算和不切实际的累加
+  },
+  cpi: {
+    'inflation': { coef: 1.0, note: '直接定义：CPI 即通胀本身' },
+    'monetary_policy': { coef: 0.5, note: 'Taylor Rule 反应系数（通胀偏离目标 1pp → 政策反应约 50bp）' },
+    'real_rates': { coef: -0.4, note: '通胀预期渠道：CPI 上行推高 BEI breakeven → 压低实际利率（Fisher 方程）' },
+    // gold / us_treasury / us_equity 通过 inflation → real_rates / monetary_policy 间接传导
+  },
+  unemployment: {
+    'unemployment_rate': { coef: 1.0, note: '直接定义' },
+    'monetary_policy': { coef: -0.4, note: '双重使命' },
+    'gdp_growth': { coef: -1.5, note: 'Okun定律基准系数2，半弹性约1.5' },
+    'inflation': { coef: -0.4, note: 'Phillips Curve, 平坦化后系数减小' },
+    'credit_spread': { coef: 0.4, note: '失业↑→违约预期↑' },
+  },
+  us_tariff: {
+    'inflation': { coef: 0.15, note: 'Cavallo et al. 2021: 关税到进口商价格近 100% 传导，到零售传导不完整 (<5%/年)；Goldman 估计消费者承担 55%' },
+    'trade_flows': { coef: -0.5, note: 'Fajgelbaum 2020: 25% 关税→相关贸易 -25%' },
+    'policy_uncertainty': { coef: 5, note: 'Baker-Bloom-Davis: 关税战是 EPU 贸易分项的主驱动' },
+    // gdp / equity / em / commodities 通过 inflation / policy_uncertainty / trade_flows 间接传导
+  },
+  oil_price: {  // 单位：每涨 10 美元
+    'inflation': { coef: 0.4, note: 'EIA: 油价 +$10 → CPI +0.4pp（含 second-round）' },
+    'commodities': { coef: 1.5, note: '能源占商品指数 60%（直接定义性影响）' },
+    // gdp / em / usd 通过 inflation / commodities 间接传导
+  },
+  china_credit: {  // 单位：每变化 1pp
+    'china_policy': { coef: 1.0, note: '直接定义：信贷脉冲是中国宏观调控的核心抓手' },
+    'commodities': { coef: 0.3, note: 'BIS WP 1011: 中国信贷脉冲领先金属价格 6-9 月（保留短路加速）' },
+    // 全球流动性/EM/GDP 都通过 china_policy 节点接力传导
+  },
+  fiscal_deficit: {  // 单位：每变化 1pp
+    'fiscal_policy': { coef: 1.0, note: '直接定义' },
+    'us_treasury': { coef: 0.15, note: '供给压力推升收益率（debt-supply 渠道）' },
+    'global_liquidity': { coef: 0.3, note: 'TGA 下降释放银行准备金（Boston Fed 2018）' },
+    // gdp / inflation 通过 fiscal_policy 间接传导
+  },
+  risk_event: {  // 单位：每 +50 个 GPR 点
+    'risk_appetite': { coef: -0.6, note: 'Caldara-Iacoviello GPR：地缘风险↑→Risk-Off（风险偏好↓）' },
+    'gold': { coef: 0.3, note: '避险溢价（GPR→金价直接渠道）' },
+    'oil_price': { coef: 0.2, note: '若涉及主要产油区（中东等）' },
+    // usd / em / equity / credit 都通过 risk_appetite 接力传导
+  },
+  policy_uncertainty: {  // 单位：每 +50 个 EPU 点
+    'risk_appetite': { coef: -0.4, note: 'Bloom 2009: 不确定性↑→Risk-Off（风险偏好↓）' },
+    'gdp_growth': { coef: -0.1, note: 'Baker-Bloom-Davis 2016: EPU↑1σ → IP -1.6%' },
+    // equity / credit / em 都通过 risk_appetite + gdp 接力传导
+  },
+};
+
+// 预设情景
+const SCENARIOS = {
+  baseline: {
+    name: '基准',
+    note: null,
+    levers: { fed_rate: 4.5, cpi: 2.5, unemployment: 4.0, us_tariff: 3, oil_price: 75, china_credit: 0, fiscal_deficit: 6, risk_event: 100, policy_uncertainty: 100 }
+  },
+  stagflation_1974: {
+    name: '滞胀 · 1974',
+    note: {
+      title: '📜 历史情景：1973-1975 第一次石油危机滞胀',
+      body: 'OPEC禁运推高油价4倍（$3→$12），美国CPI达12.3%（1974.12），失业率升至9%（1975.5），GDP连续负增长。Burns主席的Fed反应迟缓，1974一度加息至13%但旋即降息。这是凯恩斯主义"菲利普斯曲线交易"破产的标志——证明了通胀和失业可以同时上升。资产表现：股市1973-74熊市跌48%，黄金从$35升至$200（+470%），美元疲软。'
+    },
+    levers: { fed_rate: 7.5, cpi: 11, unemployment: 8.5, us_tariff: 4, oil_price: 145, china_credit: 0, fiscal_deficit: 4, risk_event: 200, policy_uncertainty: 220 }
+  },
+  volcker_1981: {
+    name: 'Volcker紧缩 · 1981',
+    note: {
+      title: '📜 历史情景：1979-1982 Volcker货币紧缩',
+      body: 'Volcker将联邦基金利率推至19-20%（1981.6峰值），用衰退（失业率升至10.8%，1982.11）换通胀回归（CPI从14.8%降至3.2%）。强美元（DXY +50%）压垮拉美债务国，1982墨西哥违约引爆拉美债务危机。这是央行"可信度承诺"奠基战。资产表现：长债先大跌后V反，1982下半年股市启动20年牛市。'
+    },
+    levers: { fed_rate: 7.5, cpi: 6, unemployment: 9.5, us_tariff: 5, oil_price: 110, china_credit: 0, fiscal_deficit: 5, risk_event: 180, policy_uncertainty: 180 }
+  },
+  gfc_2008: {
+    name: '金融危机 · 2008',
+    note: {
+      title: '📜 历史情景：2008-2009 全球金融危机',
+      body: '<strong>美国侧</strong>：Lehman倒闭(2008.9.15)后6周内：HY信用利差从800bp爆炸至1971bp(2008.10.10历史峰值)、VIX峰值89、TED利差升至463bp。Fed紧急降息至0-0.25%(2008.12)启动QE1，财政赤字升至GDP 9.8%。<br><br><strong>中国侧（关键，原模型曾忽略）</strong>：2008.11 国务院推出 <strong>4万亿RMB（$586B / GDP 12.5%）</strong>刺激计划，2009年信贷脉冲达 +12-14pp。CME研究：中国刺激推动铜价从$1.30/lb→$4.60、油价从<$40→>$110、铁矿石从$60→$190(2011)，是 2009-2011 大宗商品超级周期的核心驱动。世界银行评价"规模适当、结构合理、时机准确"，但也埋下后续地方政府债务问题。<br><br><strong>资产表现</strong>：标普500 -57%(2007.10-2009.3)、UST 10Y从5.3%→2.1%、黄金从$1000突破$1900(2011)、铜从$1.30→$4.60(2011)。'
+    },
+    levers: { fed_rate: 0.25, cpi: -0.5, unemployment: 9.5, us_tariff: 2, oil_price: 40, china_credit: 12, fiscal_deficit: 10, risk_event: 280, policy_uncertainty: 350 }
+  },
+  covid_2020: {
+    name: 'COVID冲击 · 2020',
+    note: {
+      title: '📜 历史情景：2020 COVID 流动性危机+刺激',
+      body: '2020.3：标普500月内跌-34%、VIX达85、WTI原油期货首现负值(-$37, 2020.4.20)。Fed两周内降息150bp至0%、推出无限QE+建立6大流动性工具。CARES Act 2.2万亿+后续刺激合计6万亿(GDP 28%)。失业率单月从3.5%飙至14.7%。资产表现：4月起V反，纳指年内+44%，黄金破$2000(2020.8)，比特币起涨5倍。这是货币+财政双重刺激教科书案例。'
+    },
+    levers: { fed_rate: 0.25, cpi: 1.5, unemployment: 10, us_tariff: 5, oil_price: 30, china_credit: 6, fiscal_deficit: 14.7, risk_event: 350, policy_uncertainty: 400 }
+  },
+  recession: {
+    name: '硬着陆衰退',
+    note: {
+      title: '⚠ 假设情景：硬着陆衰退',
+      body: '失业飙升至8%以上、通胀快速回落至目标以下、央行被迫激进降息。机制类似2008或2020但不指向特定年份。央行通常将利率降至接近零，财政赤字大幅扩张（自动稳定器+刺激）。资产表现：长期国债大幅跑赢，股票和大宗下跌，信用利差爆炸性扩大。'
+    },
+    levers: { fed_rate: 1.0, cpi: 1.0, unemployment: 8.5, us_tariff: 5, oil_price: 50, china_credit: 5, fiscal_deficit: 12, risk_event: 250, policy_uncertainty: 200 }
+  },
+  stagflation: {
+    name: '滞胀（假设）',
+    note: {
+      title: '⚠ 假设情景：现代滞胀',
+      body: '高通胀(7%)+高失业(7%)+负增长。1973-75是经典案例（见"滞胀1974"）。央行陷入两难：加息打通胀但加深衰退，宽松刺激增长但通胀失控。模拟器中：保持利率高位但不能继续加息（已经压制需求），关税和油价是滞胀的输入冲击源。资产表现：现金为王、黄金对冲、股债双跌。'
+    },
+    levers: { fed_rate: 5.5, cpi: 7, unemployment: 7, us_tariff: 15, oil_price: 130, china_credit: -5, fiscal_deficit: 8, risk_event: 200, policy_uncertainty: 250 }
+  },
+  china_stimulus: {
+    name: '中国刺激',
+    note: {
+      title: 'ℹ 中国大规模刺激（参考 2008/2020/2024Q4）',
+      body: '中国信贷脉冲快速转正(+10pp)，房地产和基建拉动全球工业金属需求。注意：中国刺激主要利好工业金属（铜、铁矿石）和资源型EM（巴西、澳洲），对美股的传导相对有限。历史上类似情景：2008Q4-2009、2015-2016、2020Q2、2024Q4一揽子刺激。'
+    },
+    levers: { fed_rate: 4.0, cpi: 2.5, unemployment: 4.0, us_tariff: 3, oil_price: 90, china_credit: 10, fiscal_deficit: 6, risk_event: 100, policy_uncertainty: 100 }
+  },
+  tariff_war: {
+    name: '关税升级',
+    note: {
+      title: '⚠ 关税升级（参考 2018-2019 / 2025）',
+      body: '美国平均关税升至15-20%。Cavallo et al. (2021)研究：关税到进口商支付价格近完全传导，但到消费者零售价格传导慢且不完整（一年后<5%）。最终美国消费者承担约55%（Goldman Sachs 2025估计）、企业承担22%、外国出口商18%。同时报复性关税和供应链中断推升通胀和不确定性。美联储陷入两难：通胀上行需要加息，但增长下行需要降息。新兴市场和出口型经济体首当其冲。注意：关税应主要驱动 policy_uncertainty 而非地缘风险（risk_event）。'
+    },
+    levers: { fed_rate: 4.5, cpi: 4, unemployment: 4.5, us_tariff: 17, oil_price: 80, china_credit: -3, fiscal_deficit: 6, risk_event: 130, policy_uncertainty: 280 }
+  },
+  goldilocks: {
+    name: '软着陆',
+    note: {
+      title: '✓ 金发女孩情景（Goldilocks）',
+      body: '通胀回落至2%目标附近、失业稳定在4%左右、经济增长2%以上、央行温和降息。罕见但2024-2025年部分时段实现。资产表现：股票（尤其成长股）、企业信用债、新兴市场普遍受益。'
+    },
+    levers: { fed_rate: 3.0, cpi: 2.2, unemployment: 4.0, us_tariff: 3, oil_price: 70, china_credit: 2, fiscal_deficit: 5, risk_event: 90, policy_uncertainty: 80 }
+  },
+};
+
+// === 三因子简化视图 (Bridgewater All Weather Framework) ===
+// 把每个节点映射到主导的宏观因子: Growth / Inflation / Liquidity
+// Dalio 全天候组合的理论基础——任何宏观环境都可由两个维度刻画：
+// 增长（高/低）× 通胀（高/低）四象限，加上贯穿全局的流动性
+const FACTOR_MAP = {
+  // Growth 因子主导
+  gdp_growth: 'growth',
+  unemployment_rate: 'growth',
+  us_equity: 'growth',
+  commodities: 'growth',
+  em_assets: 'growth',
+  trade_flows: 'growth',
+  cycle_position: 'growth',
+
+  // Inflation 因子主导
+  inflation: 'inflation',
+  real_rates: 'inflation',
+  gold: 'inflation',
+  us_treasury: 'inflation',
+
+  // Liquidity 因子主导
+  global_liquidity: 'liquidity',
+  monetary_policy: 'liquidity',
+  fiscal_policy: 'liquidity',
+  china_policy: 'liquidity',
+  usd_index: 'liquidity',
+  sovereign_fx: 'liquidity',
+  credit_spread: 'liquidity',
+  risk_appetite: 'liquidity',
+  institutional_flows: 'liquidity',
+  asset_allocation: 'liquidity',
+  cross_asset: 'liquidity',
+};
+
+const FACTOR_META = {
+  growth: {
+    name: '增长',
+    en: 'Growth',
+    color: '#7eb8d8',
+    desc: '实体经济活动强度。高增长→盈利改善、商品需求↑、就业改善；低增长→衰退风险、资产承压。代理指标：GDP、PMI、零售销售、工业产出。',
+  },
+  inflation: {
+    name: '通胀',
+    en: 'Inflation',
+    color: '#e57373',
+    desc: '物价上涨压力。高通胀侵蚀实际购买力、压低实际利率、利好通胀对冲资产；低通胀利好名义债券。代理指标：CPI、PCE、breakeven inflation、油价。',
+  },
+  liquidity: {
+    name: '流动性',
+    en: 'Liquidity',
+    color: '#b8a8e0',
+    desc: '货币与信用的供给状态。央行资产负债表、信用利差、美元强弱共同决定全球资金"水位"。流动性扩张利好所有风险资产；收缩则反之。代理指标：M2、央行QE/QT、HY OAS、DXY。',
+  },
+};
+
+// =====================================================================
+// 传导引擎：杠杆变化如何级联传导至所有节点
+// =====================================================================
+
+// 当前杠杆状态
+let currentLevers = {};
+
+// 当前节点状态: -1 (强烈负面) 到 +1 (强烈正面)
+let nodeStates = {};
+
+// 初始化
+function initModel() {
+  LEVERS.forEach(l => { currentLevers[l.id] = l.baseline; });
+  NODES.forEach(n => { nodeStates[n.id] = 0; });
+}
+
+// 计算所有节点的状态
+// 算法：
+// 1. 计算每个杠杆相对baseline的偏离
+// 2. 通过LEVER_DIRECT传导到一阶节点
+// 3. 通过EDGES网络迭代传导（3轮，模拟二阶/三阶效应）
+// 4. 归一化到[-1, +1]区间用于显示
+function recompute() {
+  // Reset states
+  NODES.forEach(n => { nodeStates[n.id] = 0; });
+
+  // Step 1: First-order shocks from levers
+  LEVERS.forEach(lever => {
+    const delta = currentLevers[lever.id] - lever.baseline;
+    if (Math.abs(delta) < 0.001) return;
+
+    // 标准化偏离量（按典型变化范围）
+    const normalizedDelta = normalizeDelta(lever.id, delta);
+
+    // 应用到直接受影响的节点
+    const direct = LEVER_DIRECT[lever.id] || {};
+    Object.keys(direct).forEach(nodeId => {
+      const { coef } = direct[nodeId];
+      // 系数已经针对单位变化校准，这里乘以归一化偏离
+      nodeStates[nodeId] += normalizedDelta * coef * 0.15; // 0.15是缩放因子
+    });
+  });
+
+  // Step 2: Iterative propagation through edges (network effect)
+  for (let iter = 0; iter < 3; iter++) {
+    const newDeltas = {};
+    NODES.forEach(n => { newDeltas[n.id] = 0; });
+
+    EDGES.forEach(edge => {
+      if (nodeStates[edge.from] === undefined) return;
+      const fromState = nodeStates[edge.from];
+      // 只传导没有杠杆直接控制的节点
+      newDeltas[edge.to] += fromState * edge.strength * edge.sign * 0.25 * Math.pow(0.5, iter);
+    });
+
+    Object.keys(newDeltas).forEach(id => {
+      nodeStates[id] += newDeltas[id];
+    });
+  }
+
+  // Step 3: Clip to [-1, +1]
+  NODES.forEach(n => {
+    nodeStates[n.id] = Math.max(-1, Math.min(1, nodeStates[n.id]));
+  });
+}
+
+// 标准化杠杆偏离量
+function normalizeDelta(leverId, delta) {
+  const ranges = {
+    fed_rate: 1.0,         // 1%是显著变化
+    cpi: 1.0,              // 1pp是显著变化
+    unemployment: 1.0,     // 1pp
+    us_tariff: 5.0,        // 5pp是显著变化
+    oil_price: 20,         // 20美元
+    china_credit: 5,       // 5pp
+    fiscal_deficit: 2,     // 2pp GDP
+    risk_event: 50,        // 50点GPR
+    policy_uncertainty: 50, // 50点EPU
+  };
+  return delta / (ranges[leverId] || 1);
+}
+
+// 状态转箭头符号
+function stateToArrow(s) {
+  if (s > 0.4) return { sym: '↑↑', cls: 'arrow-up', label: '强升' };
+  if (s > 0.1) return { sym: '↑', cls: 'arrow-up', label: '上升' };
+  if (s > -0.1) return { sym: '→', cls: 'arrow-flat', label: '中性' };
+  if (s > -0.4) return { sym: '↓', cls: 'arrow-down', label: '下降' };
+  return { sym: '↓↓', cls: 'arrow-down', label: '强降' };
+}
+
+// 状态转颜色
+function stateToColor(s) {
+  if (s > 0.1) return 'var(--green-up)';
+  if (s < -0.1) return 'var(--red-down)';
+  return 'var(--neutral)';
+}
+
+// 状态转幅度（用于节点大小变化）
+function stateToMagnitude(s) {
+  return Math.abs(s);
+}
+
+// 设置杠杆值
+function setLever(id, val) {
+  currentLevers[id] = val;
+  recompute();
+}
+
+// 加载情景
+function applyScenario(scenarioId) {
+  const sc = SCENARIOS[scenarioId];
+  if (!sc) return;
+  Object.keys(sc.levers).forEach(k => {
+    currentLevers[k] = sc.levers[k];
+  });
+  recompute();
+  return sc;
+}
+
+// 重置到baseline
+function resetToBaseline() {
+  LEVERS.forEach(l => { currentLevers[l.id] = l.baseline; });
+  recompute();
+}
+
+initModel();
+recompute();
+
+// === 计算每个节点的"传导深度"——用于波纹式动画点亮 ===
+// 从所有 active levers 出发做 BFS，每个节点的深度 = 最短到达路径的边数
+// 改进：强边（strength > 0.5）算 1 层，弱边（< 0.4）算 2 层
+// 这样金融危机这种多杠杆同时触发的情景也能呈现传导节奏
+function computeNodeDepths() {
+  const depths = {};
+
+  // Step 1: 从每个非零杠杆出发
+  const seedNodes = new Set();
+  LEVERS.forEach(lever => {
+    const delta = currentLevers[lever.id] - lever.baseline;
+    if (Math.abs(delta) < 0.001) return;
+    const direct = LEVER_DIRECT[lever.id] || {};
+    Object.keys(direct).forEach(nodeId => {
+      seedNodes.add(nodeId);
+      depths[nodeId] = 0;  // 一阶节点
+    });
+  });
+
+  // Step 2: 用"加权 BFS"——强边 +1，弱边 +2
+  // 这样视觉上强传导先发生，弱传导后发生
+  // 用类 Dijkstra 算法处理（边权 1 或 2）
+  const nodeQueue = [];  // {nodeId, depth}
+  seedNodes.forEach(n => nodeQueue.push({ nodeId: n, depth: 0 }));
+
+  // 邻接表
+  const outEdges = {};
+  EDGES.forEach(edge => {
+    if (!outEdges[edge.from]) outEdges[edge.from] = [];
+    // 强边权重 1，中等边权重 2，弱边权重 3
+    let weight;
+    if (edge.strength >= 0.5) weight = 1;
+    else if (edge.strength >= 0.35) weight = 2;
+    else weight = 3;
+    outEdges[edge.from].push({ to: edge.to, weight });
+  });
+
+  // 简化的 Dijkstra（小图够用）
+  while (nodeQueue.length > 0) {
+    // 取最小 depth 的节点
+    nodeQueue.sort((a, b) => a.depth - b.depth);
+    const { nodeId, depth } = nodeQueue.shift();
+    if (depth > 10) continue;  // 上限保护
+
+    const nexts = outEdges[nodeId] || [];
+    nexts.forEach(({ to, weight }) => {
+      // 只传导有显著状态的节点
+      if (Math.abs(nodeStates[to]) < 0.05) return;
+      const newDepth = depth + weight;
+      if (depths[to] === undefined || depths[to] > newDepth) {
+        depths[to] = newDepth;
+        nodeQueue.push({ nodeId: to, depth: newDepth });
+      }
+    });
+  }
+
+  return depths;
+}
+
+// =====================================================================
+// 径向网络渲染器
+// =====================================================================
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// 布局参数（rings在initCanvas中根据画布尺寸动态计算）
+const LAYOUT = {
+  rings: [0, 90, 175, 260, 345], // 默认值，会被覆盖
+  ringLabels: ['Layer 1 · 货币基础', 'Layer 2 · 经济运行', 'Layer 3 · 政策调控', 'Layer 4 · 金融市场', 'Layer 5 · 资产定价'],
+};
+
+let canvasW = 0, canvasH = 0;
+let cx = 0, cy = 0;
+let selectedNode = null;
+let nodePositions = {};
+
+// 用户通过拖动调整后的角度（约束在自己的环上）
+const userAngles = {};
+
+// 缩放和平移状态
+let zoomLevel = 1;
+let panX = 0;
+let panY = 0;
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 2.5;
+
+// 视图模式: 'layers' (5层架构) | 'factors' (三因子)
+let viewMode = 'layers';
+// 三因子视图下的过滤: 'all' | 'growth' | 'inflation' | 'liquidity'
+let factorFilter = 'all';
+
+// === 传导动画状态 ===
+// animationProgress: 0 = 没有进度（节点全部隐藏状态）, +inf = 完全显示
+// 显示规则：节点深度 <= animationProgress 时显示
+let animationProgress = 999;  // 初始全显
+let animationTimer = null;
+let animationDepths = {};  // {nodeId: depth}
+// 动画刚结束的标志：在第一次 render 之后清除，用于触发 factor-mode 平滑淡化
+let justFinishedAnimation = false;
+
+function initCanvas() {
+  const wrap = document.querySelector('.canvas-wrap');
+  canvasW = wrap.clientWidth;
+  canvasH = wrap.clientHeight;
+  cx = canvasW / 2;
+  cy = canvasH / 2;
+
+  const safePadding = 90;
+  const maxR = Math.min(canvasW, canvasH) / 2 - safePadding;
+
+  // === 关键约束：环间距必须 >= 2.5 × 节点半径，避免节点跨环重叠 ===
+  // 节点半径 26px (含状态扩展) → 最小间距 = 2.5 × 26 = 65px
+  // 加上节点周围文字标签，实际舒适间距 80-100px
+  const NODE_R_MAX = 26;
+  const MIN_RING_STEP = 2.7 * NODE_R_MAX;  // ≈ 70px
+
+  // 内圈半径：必须容纳中心节点 + ring1节点，最小 ~120px
+  const RING1_MIN = 130;
+  const ring1 = Math.max(RING1_MIN, maxR * 0.22);
+
+  // 后续 4 个环间距：至少 MIN_RING_STEP
+  let ringStep = (maxR - ring1) / 4;
+  if (ringStep < MIN_RING_STEP) {
+    // 画布不够大时，强制使用 MIN_RING_STEP，外圈会超出 maxR
+    // 但这种情况下用户可以缩小（zoom out）查看全貌
+    ringStep = MIN_RING_STEP;
+  }
+
+  LAYOUT.rings = [
+    0,
+    ring1,
+    ring1 + ringStep,
+    ring1 + ringStep * 2,
+    ring1 + ringStep * 3,
+    ring1 + ringStep * 4,
+  ];
+
+  // 如果总半径超出画布，自动缩小初始 zoomLevel 以适配
+  // 节点中心在 LAYOUT.rings[5]，但节点本体 ~26px + 中文标签外延 ~50px = 76px
+  // 加 10px 视觉边距
+  const NODE_OUTER_EXTENT = 90;
+  const totalR = LAYOUT.rings[5] + NODE_OUTER_EXTENT;
+  const halfMin = Math.min(canvasW, canvasH) / 2;
+  const fitZoom = halfMin / totalR;
+  // 仅当还没被用户调整过时，应用 fit
+  if (fitZoom < 1 && zoomLevel === 1) {
+    zoomLevel = Math.max(ZOOM_MIN, fitZoom);
+  }
+
+  const svg = document.getElementById('canvas');
+  svg.setAttribute('viewBox', `0 0 ${canvasW} ${canvasH}`);
+
+  computeNodePositions();
+}
+
+function computeNodePositions() {
+  nodePositions = {};
+
+  // 第一步：把 layer 字符串映射到正确的 ring 索引（修复 L5 ring=5 越界）
+  // 同时按 ring 分组节点，自动均匀分布角度
+  const layerToRing = { l1: 1, l2: 2, l3: 3, l4: 4, l5: 5 };
+
+  // 中心节点单独处理
+  NODES.forEach(n => {
+    if (n.ring === 0 || n.id === 'global_liquidity') {
+      nodePositions[n.id] = { x: cx, y: cy };
+    }
+  });
+
+  // 按 ring 分组其余节点（5 个环，layer 1-5 各占一环）
+  const ringGroups = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  NODES.forEach(n => {
+    if (n.ring === 0 || n.id === 'global_liquidity') return;
+    // 现在支持 ring 1-5，不再重映射
+    const targetRing = Math.max(1, Math.min(n.ring, 5));
+    ringGroups[targetRing].push(n);
+  });
+
+  // 每个环：均匀分布 + 应用用户拖动的 angle 偏移
+  Object.keys(ringGroups).forEach(ringKey => {
+    const ringIdx = parseInt(ringKey);
+    if (ringIdx > 5) return;
+    const nodes = ringGroups[ringKey];
+    if (nodes.length === 0) return;
+    const r = LAYOUT.rings[ringIdx];
+
+    nodes.forEach((node, i) => {
+      // 默认均匀分布：避开顶部层标签区域
+      // 同时相邻环之间错开角度，避免不同环的节点排成一条径向直线
+      let angle;
+      if (userAngles[node.id] !== undefined) {
+        angle = userAngles[node.id];
+      } else {
+        // 每环错开 12°（奇数环额外旋转）
+        // 起始偏移 30°，避开正上方的层标签
+        const ringOffset = (ringIdx % 2) * (180 / nodes.length / 2) + ringIdx * 8;
+        const startOffset = 30 + ringOffset;
+        angle = (startOffset + (360 / nodes.length) * i) % 360;
+      }
+      const angleRad = (angle - 90) * Math.PI / 180;
+      nodePositions[node.id] = {
+        x: cx + r * Math.cos(angleRad),
+        y: cy + r * Math.sin(angleRad),
+        angle: angle,
+        ring: ringIdx,
+      };
+    });
+  });
+}
+
+function getLayerColor(layer) {
+  return `var(--${layer})`;
+}
+
+function getLayerSoftColor(layer) {
+  return `var(--${layer}-soft)`;
+}
+
+function renderCanvas() {
+  const svg = document.getElementById('canvas');
+  svg.innerHTML = '';
+
+  // 应用缩放：通过 viewBox 实现
+  // 缩小时 viewBox 变大（看到更多内容），放大时 viewBox 变小
+  const vbW = canvasW / zoomLevel;
+  const vbH = canvasH / zoomLevel;
+  const vbX = (canvasW - vbW) / 2 - panX;
+  const vbY = (canvasH - vbH) / 2 - panY;
+  svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+
+  // === 1. 绘制层级背景（同心圆填充，从外到内绘制以保证层叠正确） ===
+  // 在 factor view 下，层级背景大幅淡化（因为不再是主分类维度）
+  const layerBgOpacity = viewMode === 'factors' ? 0.3 : 1;
+  for (let i = 5; i >= 1; i--) {
+    const ring = document.createElementNS(SVG_NS, 'circle');
+    ring.setAttribute('cx', cx);
+    ring.setAttribute('cy', cy);
+    const r = LAYOUT.rings[i] + 35;
+    ring.setAttribute('r', r);
+    const layerKey = `l${i}`;
+    ring.setAttribute('fill', `var(--${layerKey}-bg)`);
+    ring.setAttribute('stroke', `var(--${layerKey})`);
+    ring.setAttribute('stroke-width', '0.5');
+    ring.setAttribute('stroke-opacity', 0.3 * layerBgOpacity);
+    ring.setAttribute('fill-opacity', layerBgOpacity);
+    ring.setAttribute('stroke-dasharray', '3 5');
+    svg.appendChild(ring);
+  }
+
+  // === 2. 绘制环标签（顶部，放在两环之间的空隙处） ===
+  const layerLabels = ['', '货币基础', '经济运行', '政策调控', '金融市场', '资产定价'];
+  for (let i = 1; i <= 5; i++) {
+    const layerKey = `l${i}`;
+    const labelText = layerLabels[i];
+
+    // 标签 Y 位置：放在该层的环上（节点所在的圆周上）
+    // 但因为节点从 30° 开始分布，正上方（0°）是空的，标签放这里不会冲突
+    const labelY = cy - LAYOUT.rings[i];
+
+    // 标签背景：实色填充，更醒目
+    const textW = labelText.length * 12 + 24;
+    const labelBg = document.createElementNS(SVG_NS, 'rect');
+    labelBg.setAttribute('x', cx - textW / 2);
+    labelBg.setAttribute('y', labelY - 11);
+    labelBg.setAttribute('width', textW);
+    labelBg.setAttribute('height', 22);
+    labelBg.setAttribute('rx', 11);
+    labelBg.setAttribute('fill', `var(--${layerKey})`);
+    labelBg.setAttribute('opacity', viewMode === 'factors' ? '0.3' : '0.95');
+    svg.appendChild(labelBg);
+
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('x', cx);
+    label.setAttribute('y', labelY);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'central');
+    label.setAttribute('font-family', 'Noto Sans SC, sans-serif');
+    label.setAttribute('font-size', '12');
+    label.setAttribute('font-weight', '600');
+    label.setAttribute('fill', '#0a0b0d');
+    label.setAttribute('letter-spacing', '0.05em');
+    label.textContent = labelText;
+    svg.appendChild(label);
+  }
+
+  // === 3. 绘制边 ===
+  const edgeGroup = document.createElementNS(SVG_NS, 'g');
+  edgeGroup.setAttribute('id', 'edges');
+  svg.appendChild(edgeGroup);
+
+  EDGES.forEach((edge, idx) => {
+    const fromPos = nodePositions[edge.from];
+    const toPos = nodePositions[edge.to];
+    if (!fromPos || !toPos) return;
+
+    const line = document.createElementNS(SVG_NS, 'path');
+
+    // 弯曲边以避免视觉重叠
+    const dx = toPos.x - fromPos.x;
+    const dy = toPos.y - fromPos.y;
+    const dr = Math.sqrt(dx * dx + dy * dy);
+    const curveOffset = dr * 0.15;
+
+    // 计算控制点（垂直于直线方向）
+    const midX = (fromPos.x + toPos.x) / 2;
+    const midY = (fromPos.y + toPos.y) / 2;
+    const perpX = -dy / dr * curveOffset;
+    const perpY = dx / dr * curveOffset;
+    const ctrlX = midX + perpX;
+    const ctrlY = midY + perpY;
+
+    line.setAttribute('d', `M ${fromPos.x},${fromPos.y} Q ${ctrlX},${ctrlY} ${toPos.x},${toPos.y}`);
+    line.setAttribute('fill', 'none');
+
+    // 边的样式：基于节点状态
+    const fromState = nodeStates[edge.from];
+    let isActive = Math.abs(fromState) > 0.1;
+
+    // 动画门控：from 节点的深度必须 <= animationProgress 才能"激活"
+    const fromDepth = animationDepths[edge.from];
+    const toDepth = animationDepths[edge.to];
+    let isDepthHidden = false;  // 上游节点还没被激活，整条边不可见
+    let isGrowingNow = false;   // 上游节点刚被激活（depth == progress），边正在"长出来"
+    let isUnrelatedEdge = false; // 边的两端都是无关节点（拖动期间）
+
+    // 检测无关边（两端都是 -998）
+    if (fromDepth === -998 || toDepth === -998) {
+      isUnrelatedEdge = true;
+      isActive = false;
+    } else if (fromDepth !== undefined) {
+      if (fromDepth > animationProgress) {
+        isActive = false;
+        isDepthHidden = true;
+      } else if (fromDepth === animationProgress) {
+        isGrowingNow = true;
+      }
+    }
+
+    let opacity = isActive ? 0.6 + Math.abs(fromState) * 0.35 : 0.28;
+    let strokeWidth = isActive ? 1.2 + Math.abs(fromState) * 1.5 : 0.8;
+
+    // 在 depth-hidden 状态下，让边几乎不可见
+    if (isDepthHidden) {
+      opacity = 0.05;
+    }
+    // 无关边：极弱
+    if (isUnrelatedEdge) {
+      opacity = 0.03;
+      strokeWidth = 0.5;
+    }
+
+    // 在 factor 过滤下，淡化"非该因子链路上"的边
+    if (viewMode === 'factors' && factorFilter !== 'all') {
+      const fromFactor = FACTOR_MAP[edge.from];
+      const toFactor = FACTOR_MAP[edge.to];
+      // 边连接的两端至少有一端属于当前过滤因子，才保持完整可见性
+      if (fromFactor !== factorFilter && toFactor !== factorFilter) {
+        opacity *= 0.15;
+        strokeWidth *= 0.5;
+      }
+    }
+
+    let strokeColor = 'var(--ink-faint)';
+    if (edge.type === 'correlation') {
+      // 共振边：蓝色实线（不传导 active sign，因为是相关性而非因果）
+      strokeColor = '#5b9bd5';
+      // 共振边不主动激活——它们的活跃度由两端任一端决定
+      const toState = nodeStates[edge.to];
+      if (Math.abs(fromState) > 0.1 || Math.abs(toState) > 0.1) {
+        opacity = Math.max(opacity, 0.5);
+      }
+    } else if (isActive) {
+      const effectiveSign = fromState * edge.sign;
+      if (effectiveSign > 0.1) strokeColor = 'var(--green-up)';
+      else if (effectiveSign < -0.1) strokeColor = 'var(--red-down)';
+    }
+
+    line.setAttribute('stroke', strokeColor);
+    line.setAttribute('stroke-width', strokeWidth);
+    line.setAttribute('stroke-opacity', opacity);
+
+    // === 边的"生长"动画 ===
+    if (isGrowingNow) {
+      line.setAttribute('pathLength', '100');
+      line.setAttribute('stroke-dasharray', '100 100');
+      line.style.animation = 'edgeGrow 0.75s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+    } else {
+      // 正常状态：按 type + sign 决定 dasharray
+      // 因果(正)：实线 / 因果(负)：实线（已用颜色区分）
+      // 共振：蓝色实线
+      // 依环境：虚线
+      let dashArray = '';
+      if (edge.type === 'regime') {
+        dashArray = '6 4';  // 依环境：虚线
+      } else if (edge.type === 'correlation') {
+        dashArray = '';  // 共振：实线（用蓝色区分）
+      } else if (edge.sign < 0) {
+        dashArray = '5 3';  // 因果负向：长虚
+      }
+      // 因果正向：实线（默认）
+      line.setAttribute('stroke-dasharray', dashArray);
+    }
+
+    line.setAttribute('class', 'edge');
+    line.setAttribute('data-from', edge.from);
+    line.setAttribute('data-to', edge.to);
+    line.setAttribute('data-type', edge.type || 'causal');
+    line.setAttribute('data-mech', edge.mechanism || '');
+
+    line.addEventListener('mouseenter', (e) => showEdgeTooltip(e, edge));
+    line.addEventListener('mouseleave', hideEdgeTooltip);
+
+    edgeGroup.appendChild(line);
+
+    // === 在边的中后段加方向箭头（小三角） ===
+    // depth-hidden 时不画箭头（边还没出现，箭头会显得突兀）
+    if (!isDepthHidden) {
+      const t = 0.65;
+      const arrX = (1-t)*(1-t) * fromPos.x + 2*(1-t)*t * ctrlX + t*t * toPos.x;
+      const arrY = (1-t)*(1-t) * fromPos.y + 2*(1-t)*t * ctrlY + t*t * toPos.y;
+      const tanX = 2*(1-t) * (ctrlX - fromPos.x) + 2*t * (toPos.x - ctrlX);
+      const tanY = 2*(1-t) * (ctrlY - fromPos.y) + 2*t * (toPos.y - ctrlY);
+      const tanLen = Math.sqrt(tanX*tanX + tanY*tanY);
+      if (tanLen > 0) {
+        const angle = Math.atan2(tanY, tanX) * 180 / Math.PI;
+        const arrowSize = isActive ? 6 + Math.abs(fromState) * 3 : 4;
+        const isCorrelation = edge.type === 'correlation';
+
+        // 主箭头（指向 to）
+        const arrow = document.createElementNS(SVG_NS, 'path');
+        arrow.setAttribute('d', `M -${arrowSize},-${arrowSize*0.6} L 0,0 L -${arrowSize},${arrowSize*0.6} Z`);
+        arrow.setAttribute('transform', `translate(${arrX},${arrY}) rotate(${angle})`);
+        arrow.setAttribute('fill', strokeColor);
+        arrow.setAttribute('opacity', opacity);
+        arrow.style.pointerEvents = 'none';
+
+        if (isGrowingNow) {
+          arrow.style.animation = 'arrowAppear 0.75s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+          arrow.style.opacity = '0';
+        }
+        edgeGroup.appendChild(arrow);
+
+        // 共振边：再加反向箭头，形成 ←→ 双向
+        if (isCorrelation) {
+          // 反向箭头放在 t=0.35 处（边的前段），方向反过来
+          const t2 = 0.35;
+          const arr2X = (1-t2)*(1-t2) * fromPos.x + 2*(1-t2)*t2 * ctrlX + t2*t2 * toPos.x;
+          const arr2Y = (1-t2)*(1-t2) * fromPos.y + 2*(1-t2)*t2 * ctrlY + t2*t2 * toPos.y;
+          const tan2X = 2*(1-t2) * (ctrlX - fromPos.x) + 2*t2 * (toPos.x - ctrlX);
+          const tan2Y = 2*(1-t2) * (ctrlY - fromPos.y) + 2*t2 * (toPos.y - ctrlY);
+          const angle2 = Math.atan2(tan2Y, tan2X) * 180 / Math.PI + 180;  // 反向
+
+          const arrow2 = document.createElementNS(SVG_NS, 'path');
+          arrow2.setAttribute('d', `M -${arrowSize},-${arrowSize*0.6} L 0,0 L -${arrowSize},${arrowSize*0.6} Z`);
+          arrow2.setAttribute('transform', `translate(${arr2X},${arr2Y}) rotate(${angle2})`);
+          arrow2.setAttribute('fill', strokeColor);
+          arrow2.setAttribute('opacity', opacity);
+          arrow2.style.pointerEvents = 'none';
+          if (isGrowingNow) {
+            arrow2.style.animation = 'arrowAppear 0.75s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+            arrow2.style.opacity = '0';
+          }
+          edgeGroup.appendChild(arrow2);
+        }
+      }
+    }
+  });
+
+  // === 4. 绘制节点 ===
+  const nodeGroup = document.createElementNS(SVG_NS, 'g');
+  nodeGroup.setAttribute('id', 'nodes');
+  svg.appendChild(nodeGroup);
+
+  NODES.forEach(node => {
+    const pos = nodePositions[node.id];
+    if (!pos) return;
+
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'node-group');
+    g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+    g.setAttribute('data-id', node.id);
+
+    const isCenter = node.ring === 0;
+    const isSelected = selectedNode === node.id;
+    let state = nodeStates[node.id];
+    // 动画门控：深度未到的节点，显示为未激活状态（保持中性）
+    const nodeDepth = animationDepths[node.id];
+    let isDepthGated = false;     // 即将传导但还未到深度
+    let isUnrelated = false;      // 与当前杠杆链路无关
+    if (nodeDepth !== undefined) {
+      if (nodeDepth === -998) {
+        // 特殊值：拖动期间标记为"无关节点"，深度淡化
+        state = 0;
+        isUnrelated = true;
+      } else if (nodeDepth > animationProgress) {
+        state = 0;
+        isDepthGated = true;
+      }
+    }
+    const magnitude = Math.abs(state);
+
+    // === 视图模式判定 ===
+    // 节点的"主导色"：layers 模式下用 layer 颜色，factors 模式下用因子颜色
+    let nodeColor, nodeColorVar, fillRefColor;
+    let isDimmed = false;  // 在 factor 过滤时被淡化
+
+    // 动画进行中：暂时使用 layers 模式的颜色，让用户先看到完整传导链路
+    // 动画结束后（progress >= 999）才应用 factor 过滤的淡化和着色
+    const isAnimating = animationProgress < 999;
+
+    if (viewMode === 'factors' && !isAnimating) {
+      const factor = FACTOR_MAP[node.id];
+      if (factor && FACTOR_META[factor]) {
+        nodeColor = FACTOR_META[factor].color;
+        nodeColorVar = nodeColor;
+        if (factorFilter !== 'all' && factorFilter !== factor) {
+          isDimmed = true;
+        }
+      } else {
+        nodeColor = '#666';
+        nodeColorVar = nodeColor;
+        isDimmed = true;
+      }
+    } else if (viewMode === 'factors' && isAnimating) {
+      // 动画中：用 factor 颜色但不应用 dim（让传导先全部播完）
+      const factor = FACTOR_MAP[node.id];
+      if (factor && FACTOR_META[factor]) {
+        nodeColor = FACTOR_META[factor].color;
+      } else {
+        nodeColor = '#666';
+      }
+      nodeColorVar = nodeColor;
+    } else {
+      // layers 模式
+      nodeColor = `var(--${node.layer})`;
+      nodeColorVar = nodeColor;
+    }
+
+    // 半径基于层级和状态
+    let r = isCenter ? 38 : 24 + magnitude * 6;
+
+    // 应用淡化：factor过滤淡化 + 动画深度门控
+    let groupOpacity = 1;
+    if (isDimmed) groupOpacity = 0.18;
+    else if (isUnrelated) groupOpacity = 0.05;  // 无关节点：极弱
+    else if (isDepthGated) groupOpacity = 0.12;
+
+    // 三因子视图下，动画刚结束的瞬间：用 keyframe 平滑过渡到 dim 状态
+    // （CSS transition 在新建 DOM 上不工作，所以用 animation）
+    const useFactorFadeAnim = justFinishedAnimation && isDimmed;
+
+    // 关键：用 CSS animation 实现丝滑淡入（DOM 重建后依然生效）
+    if (!isDepthGated && nodeDepth !== undefined && nodeDepth === animationProgress) {
+      // 当前层刚刚激活的节点：淡入
+      g.style.animation = 'nodeFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) both';
+      g.style.opacity = '';
+    } else if (useFactorFadeAnim) {
+      // 三因子动画刚结束，非该因子节点：从 1 平滑淡化到 0.18
+      g.style.animation = 'factorFadeOut 1.4s cubic-bezier(0.4, 0, 0.2, 1) both';
+      g.style.opacity = '';
+    } else {
+      g.style.opacity = groupOpacity;
+      g.style.animation = '';
+    }
+
+    // 1. Glow 光晕层（最外）
+    if (isSelected || magnitude > 0.15) {
+      const glow = document.createElementNS(SVG_NS, 'circle');
+      glow.setAttribute('r', r + 8);
+      glow.setAttribute('fill', nodeColor);
+      glow.setAttribute('opacity', isSelected ? '0.25' : 0.08 + magnitude * 0.15);
+      glow.setAttribute('filter', 'blur(8px)');
+      glow.style.pointerEvents = 'none';
+      g.appendChild(glow);
+    }
+
+    // 2. 外圈装饰环（仅选中时显示）
+    if (isSelected) {
+      const outerRing = document.createElementNS(SVG_NS, 'circle');
+      outerRing.setAttribute('r', r + 5);
+      outerRing.setAttribute('fill', 'none');
+      outerRing.setAttribute('stroke', nodeColor);
+      outerRing.setAttribute('stroke-width', '1');
+      outerRing.setAttribute('stroke-opacity', '0.5');
+      outerRing.setAttribute('stroke-dasharray', '3 3');
+      g.appendChild(outerRing);
+    }
+
+    // 3. 主节点圆（实体感）
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('r', r);
+    circle.setAttribute('class', 'node-circle');
+
+    if (isSelected) {
+      // 选中：饱和填充
+      circle.setAttribute('fill', nodeColor);
+      circle.setAttribute('stroke', nodeColor);
+      circle.setAttribute('stroke-width', '2');
+    } else {
+      // 默认：暗色填充 + 彩色描边的"凸起"质感
+      const fillId = `fill-${node.id}-${viewMode}-${factorFilter}`;
+      const grad = document.createElementNS(SVG_NS, 'radialGradient');
+      grad.setAttribute('id', fillId);
+      grad.setAttribute('cx', '50%');
+      grad.setAttribute('cy', '40%');
+      grad.innerHTML = `
+        <stop offset="0%" stop-color="${nodeColor}" stop-opacity="0.35"/>
+        <stop offset="70%" stop-color="${nodeColor}" stop-opacity="0.08"/>
+        <stop offset="100%" stop-color="#0a0b0d" stop-opacity="0.95"/>
+      `;
+      let defs = svg.querySelector('defs');
+      if (!defs) {
+        defs = document.createElementNS(SVG_NS, 'defs');
+        svg.insertBefore(defs, svg.firstChild);
+      }
+      defs.appendChild(grad);
+      circle.setAttribute('fill', `url(#${fillId})`);
+      circle.setAttribute('stroke', nodeColor);
+      circle.setAttribute('stroke-width', isCenter ? '2.5' : '1.8');
+      circle.setAttribute('stroke-opacity', '0.9');
+    }
+
+    g.appendChild(circle);
+
+    // 当前层刚激活的节点：加 pulse 效果（描边脉冲）
+    if (!isDepthGated && nodeDepth !== undefined && nodeDepth === animationProgress) {
+      circle.style.animation = 'nodePulse 0.9s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+
+    // 状态指示器（小箭头）：仅当状态显著时
+    if (magnitude > 0.1) {
+      const arrowText = document.createElementNS(SVG_NS, 'text');
+      arrowText.setAttribute('class', 'node-arrow');
+      arrowText.setAttribute('text-anchor', 'middle');
+      arrowText.setAttribute('dominant-baseline', 'central');
+      arrowText.setAttribute('x', isCenter ? 0 : (r + 12));
+      arrowText.setAttribute('y', isCenter ? r + 14 : 0);
+      arrowText.setAttribute('fill', state > 0 ? 'var(--green-up)' : 'var(--red-down)');
+
+      const arrow = stateToArrow(state);
+      arrowText.textContent = arrow.sym;
+      g.appendChild(arrowText);
+    }
+
+    // 节点名称
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('class', 'node-label');
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'central');
+    label.setAttribute('y', isCenter ? -4 : 0);
+    label.setAttribute('font-size', isCenter ? 13 : 11);
+
+    if (isSelected) {
+      // 选中态：高饱和填充上用近黑文字（保证对比度）
+      label.setAttribute('fill', '#0a0b0d');
+      label.setAttribute('font-weight', 600);
+    } else {
+      // 未选中：深色背景上用主文字色
+      label.setAttribute('fill', 'var(--ink)');
+    }
+
+    label.textContent = node.name;
+    g.appendChild(label);
+
+    // 中心节点的子标签
+    if (isCenter) {
+      const sublabel = document.createElementNS(SVG_NS, 'text');
+      sublabel.setAttribute('class', 'node-sublabel');
+      sublabel.setAttribute('text-anchor', 'middle');
+      sublabel.setAttribute('dominant-baseline', 'central');
+      sublabel.setAttribute('y', 12);
+      sublabel.setAttribute('fill', isSelected ? 'rgba(0,0,0,0.6)' : 'var(--ink-mute)');
+      sublabel.textContent = node.en;
+      g.appendChild(sublabel);
+    }
+
+    g.addEventListener('mousedown', (e) => onNodeDragStart(e, node));
+
+    nodeGroup.appendChild(g);
+  });
+}
+
+// === 节点拖动（约束在所属环上） ===
+let dragState = null;
+
+function onNodeDragStart(event, node) {
+  // 中心节点不可拖动
+  if (node.ring === 0 || node.id === 'global_liquidity') {
+    selectNode(node.id);
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  dragState = {
+    nodeId: node.id,
+    layer: node.layer,
+    targetRing: Math.max(1, Math.min(node.ring, 5)),
+    startX: event.clientX,
+    startY: event.clientY,
+    moved: false,
+  };
+
+  document.addEventListener('mousemove', onNodeDragMove);
+  document.addEventListener('mouseup', onNodeDragEnd);
+}
+
+function onNodeDragMove(event) {
+  if (!dragState) return;
+
+  const dx = event.clientX - dragState.startX;
+  const dy = event.clientY - dragState.startY;
+  if (!dragState.moved && Math.sqrt(dx * dx + dy * dy) < 4) return;
+  dragState.moved = true;
+
+  // 把鼠标位置转换到 SVG 坐标空间
+  const svg = document.getElementById('canvas');
+  const rect = svg.getBoundingClientRect();
+  const mouseSvgX = ((event.clientX - rect.left) / rect.width) * canvasW;
+  const mouseSvgY = ((event.clientY - rect.top) / rect.height) * canvasH;
+
+  // 计算从中心到鼠标位置的角度
+  const dxFromCenter = mouseSvgX - cx;
+  const dyFromCenter = mouseSvgY - cy;
+  const angleRad = Math.atan2(dyFromCenter, dxFromCenter);
+  // 转回 0-360 度（0 度在顶部）
+  let angle = (angleRad * 180 / Math.PI) + 90;
+  if (angle < 0) angle += 360;
+  if (angle >= 360) angle -= 360;
+
+  // 保存到 userAngles
+  userAngles[dragState.nodeId] = angle;
+
+  // 重新计算位置并渲染
+  computeNodePositions();
+  renderCanvas();
+}
+
+function onNodeDragEnd(event) {
+  if (!dragState) return;
+
+  // 如果只是点击没有拖动，触发选中
+  if (!dragState.moved) {
+    selectNode(dragState.nodeId);
+  }
+
+  dragState = null;
+  document.removeEventListener('mousemove', onNodeDragMove);
+  document.removeEventListener('mouseup', onNodeDragEnd);
+}
+
+function showEdgeTooltip(event, edge) {
+  const tooltip = document.getElementById('edgeTooltip');
+  const fromNode = NODES.find(n => n.id === edge.from);
+  const toNode = NODES.find(n => n.id === edge.to);
+  if (!fromNode || !toNode) return;
+
+  const typeLabels = {
+    causal: { text: '因果', color: 'var(--green-up)' },
+    regime: { text: '依环境', color: 'var(--l3)' },
+    correlation: { text: '共振', color: 'var(--ink-mute)' },
+  };
+  const t = typeLabels[edge.type] || typeLabels.causal;
+
+  tooltip.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="color:var(--ink);font-weight:500">${fromNode.name} → ${toNode.name}</span>
+      <span style="font-size:8px;padding:1px 5px;border-radius:2px;background:${t.color};color:#0a0b0d;font-weight:600;letter-spacing:0.05em">${t.text}</span>
+    </div>
+    <div style="color:var(--ink-soft);font-size:10px;margin-bottom:4px;line-height:1.5">
+      ${edge.mechanism || ''}
+    </div>
+    ${edge.source ? `<div style="color:var(--ink-mute);font-size:9px">来源：${edge.source}</div>` : ''}
+  `;
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const wrapRect = document.querySelector('.canvas-wrap').getBoundingClientRect();
+  tooltip.style.display = 'block';
+  tooltip.style.left = (event.clientX - wrapRect.left + 12) + 'px';
+  tooltip.style.top = (event.clientY - wrapRect.top + 12) + 'px';
+}
+
+function hideEdgeTooltip() {
+  document.getElementById('edgeTooltip').style.display = 'none';
+}
+
+function selectNode(nodeId) {
+  selectedNode = (selectedNode === nodeId) ? null : nodeId;
+  renderCanvas();
+  renderInfoPanel();
+}
+
+// === INFO PANEL RENDERING ===
+function renderInfoPanel() {
+  const panel = document.getElementById('infoPanel');
+
+  if (!selectedNode) {
+    panel.innerHTML = `
+      <div class="info-empty">
+        <div class="info-empty-title">理解市场如何运作<br>从联动开始</div>
+        <div class="info-empty-body">
+          这是一个由 22 个核心节点组成的互动网络。每个节点都基于真实的实证研究确定其与其他节点的传导系数。
+        </div>
+        <div class="info-empty-hints">
+          <div class="info-empty-hint">
+            <b>① 拖动下方杠杆</b><br>观察整个网络如何级联响应
+          </div>
+          <div class="info-empty-hint">
+            <b>② 点击任意节点</b><br>查看其驱动因素、影响下游和实证依据
+          </div>
+          <div class="info-empty-hint">
+            <b>③ 试试预设情景</b><br>"滞胀"、"硬着陆"、"中国刺激" 等历史情境
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const node = NODES.find(n => n.id === selectedNode);
+  if (!node) return;
+
+  const state = nodeStates[node.id];
+  const arrow = stateToArrow(state);
+  const layerNames = {
+    l1: '货币基础', l2: '经济运行', l3: '政策调控',
+    l4: '金融市场', l5: '资产定价'
+  };
+
+  // 上游节点（影响这个节点的）
+  const upstream = EDGES.filter(e => e.to === node.id);
+  // 下游节点（这个节点影响的）
+  const downstream = EDGES.filter(e => e.from === node.id);
+
+  panel.innerHTML = `
+    <div class="info-header">
+      <div class="info-meta">
+        <span class="info-layer-badge" style="background:var(--${node.layer}-soft);color:var(--${node.layer})">
+          ${layerNames[node.layer]}
+        </span>
+        <span>RING ${node.ring}</span>
+      </div>
+      <div class="info-title">${node.name}</div>
+      <div class="info-en">${node.en}</div>
+
+      <div class="info-state">
+        <div>
+          <div class="info-state-label">当前状态</div>
+          <div class="info-state-val">
+            <span class="info-state-arrow ${arrow.cls}">${arrow.sym}</span>
+            <span style="color:${stateToColor(state)};font-size:14px;margin-left:8px">${arrow.label}</span>
+          </div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="info-state-label">关键指标</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:4px">
+            ${node.keyMetric || '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-label">机制描述</div>
+      <div class="info-body">${node.description}</div>
+    </div>
+
+    ${upstream.length > 0 ? `
+    <div class="info-section">
+      <div class="info-section-label">上游驱动 → ${node.name}</div>
+      ${upstream.slice(0, 6).map(e => {
+        const fromNode = NODES.find(n => n.id === e.from);
+        if (!fromNode) return '';
+        const fromState = nodeStates[e.from];
+        const effectiveSign = fromState * e.sign;
+        const arrow = stateToArrow(effectiveSign);
+        return `
+          <div class="connection" onclick="selectNode('${e.from}')">
+            <div class="connection-head">
+              <div class="connection-target">${fromNode.name} <span style="color:${stateToColor(effectiveSign)};margin-left:4px">${arrow.sym}</span></div>
+              <div class="connection-strength">${e.sign > 0 ? '+' : '−'} 强度 ${e.strength.toFixed(1)}</div>
+            </div>
+            <div class="connection-mech">${e.mechanism || ''}</div>
+            ${e.source ? `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);margin-top:4px">${e.source}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+    ` : ''}
+
+    ${downstream.length > 0 ? `
+    <div class="info-section">
+      <div class="info-section-label">${node.name} → 下游影响</div>
+      ${downstream.slice(0, 6).map(e => {
+        const toNode = NODES.find(n => n.id === e.to);
+        if (!toNode) return '';
+        const targetState = nodeStates[e.to];
+        const arrow = stateToArrow(targetState);
+        return `
+          <div class="connection" onclick="selectNode('${e.to}')">
+            <div class="connection-head">
+              <div class="connection-target">${toNode.name} <span style="color:${stateToColor(targetState)};margin-left:4px">${arrow.sym}</span></div>
+              <div class="connection-strength">${e.sign > 0 ? '+' : '−'} 强度 ${e.strength.toFixed(1)}</div>
+            </div>
+            <div class="connection-mech">${e.mechanism || ''}</div>
+            ${e.source ? `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);margin-top:4px">${e.source}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+    ` : ''}
+
+    ${node.evidence && node.evidence.length > 0 ? `
+    <div class="info-section">
+      <div class="info-section-label">实证依据</div>
+      ${node.evidence.map(ev => `
+        <div class="evidence">
+          <div class="evidence-header">
+            <div class="evidence-source">${ev.source}</div>
+            <div class="evidence-year">${ev.year}</div>
+          </div>
+          <div class="evidence-body">${ev.body}</div>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+  `;
+}
+
+// =====================================================================
+// 应用控制器
+// =====================================================================
+
+let currentScenario = 'baseline';
+
+// === 渲染杠杆控制 ===
+function renderLevers() {
+  const container = document.getElementById('leversContainer');
+  container.innerHTML = LEVERS.map(lever => {
+    const val = currentLevers[lever.id];
+    const delta = val - lever.baseline;
+    const deltaStr = delta === 0 ? '' :
+      (delta > 0 ? `+${delta.toFixed(lever.step < 1 ? 2 : 1)}` :
+                   `${delta.toFixed(lever.step < 1 ? 2 : 1)}`);
+
+    // baseline marker position
+    const baselinePct = ((lever.baseline - lever.min) / (lever.max - lever.min)) * 100;
+
+    return `
+      <div class="lever" data-id="${lever.id}">
+        <div class="lever-head">
+          <div>
+            <span class="lever-name">${lever.name}</span>
+            <span class="lever-en">${lever.en}</span>
+          </div>
+          <div>
+            <span class="lever-val">${val.toFixed(lever.step < 1 ? 2 : 1)}<span style="font-size:11px;color:var(--ink-mute);margin-left:2px">${lever.unit}</span></span>
+            ${delta !== 0 ? `<span class="lever-val-delta" style="color:${delta > 0 ? 'var(--green-up)' : 'var(--red-down)'}">${deltaStr}</span>` : ''}
+          </div>
+        </div>
+        <div class="slider-wrap">
+          <input type="range"
+                 min="${lever.min}"
+                 max="${lever.max}"
+                 step="${lever.step}"
+                 value="${val}"
+                 oninput="onLeverChange('${lever.id}', parseFloat(this.value))">
+          <div class="slider-baseline" style="left:${baselinePct}%"></div>
+          <div class="slider-marks">
+            <span>${lever.min}</span>
+            <span style="color:var(--accent)">基准 ${lever.baseline}</span>
+            <span>${lever.max}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 杠杆动画 debounce 计时器
+let leverAnimTimer = null;
+let lastLeverChangeTime = 0;
+let isDragging = false;  // 拖动期间禁止画布"预显示"
+
+function onLeverChange(id, val) {
+  setLever(id, val);
+
+  // === 关键：立即停止任何正在播放的级联动画 ===
+  if (animationTimer) {
+    clearInterval(animationTimer);
+    animationTimer = null;
+  }
+
+  // === 拖动开始时：立即把画布"暗下来"——表示等待用户做决定 ===
+  // 关键：预先计算哪些节点会被新杠杆影响（即将参与传导）
+  // 让"即将传导"的节点保持灰白（待激活），无关节点深度淡化
+  if (!isDragging) {
+    isDragging = true;
+    // 预计算"会被影响"的节点集合
+    const affectedNodes = computeNodeDepths();
+    // 给所有节点设定"等待"或"无关"状态：
+    // - 受影响节点：depth=999（被门控隐藏，但稍后会动画长出来）
+    // - 不受影响节点：depth=-998（特殊值，表示"无关"，render 时更深淡化）
+    animationDepths = {};
+    NODES.forEach(n => {
+      if (affectedNodes[n.id] !== undefined) {
+        animationDepths[n.id] = 999;  // 受影响节点：暂时隐藏
+      } else {
+        animationDepths[n.id] = -998;  // 无关节点：更深淡化
+      }
+    });
+    animationProgress = -1;
+    renderCanvas();
+  }
+
+  renderLevers();
+  updateReplayButton();
+
+  document.querySelectorAll('.scenario-pill').forEach(p => p.classList.remove('active'));
+  hideScenarioNote();
+  currentScenario = null;
+
+  // === Debounce 动画：用户停止拖动 350ms 后触发传导动画 ===
+  if (leverAnimTimer) clearTimeout(leverAnimTimer);
+  lastLeverChangeTime = Date.now();
+
+  leverAnimTimer = setTimeout(() => {
+    if (Date.now() - lastLeverChangeTime < 300) return;
+    isDragging = false;
+    // 启动级联动画：会重新计算 depths 并从源头长出来
+    startCascadeAnimation();
+    if (selectedNode) renderInfoPanel();
+    leverAnimTimer = null;
+  }, 350);
+}
+
+function loadScenario(scenarioId) {
+  // === 立即停止任何正在播放的动画 + 取消 pending debounce ===
+  if (animationTimer) {
+    clearInterval(animationTimer);
+    animationTimer = null;
+  }
+  if (leverAnimTimer) {
+    clearTimeout(leverAnimTimer);
+    leverAnimTimer = null;
+  }
+
+  currentScenario = scenarioId;
+  const sc = applyScenario(scenarioId);
+
+  document.querySelectorAll('.scenario-pill').forEach(p => p.classList.remove('active'));
+  if (event && event.target) event.target.classList.add('active');
+
+  if (sc.note) {
+    showScenarioNote(sc.note);
+  } else {
+    hideScenarioNote();
+  }
+
+  renderLevers();
+  if (selectedNode) renderInfoPanel();
+
+  // 切换情景时触发级联动画
+  startCascadeAnimation();
+}
+
+function showScenarioNote(note) {
+  const el = document.getElementById('scenarioNote');
+  document.getElementById('scenarioNoteTitle').textContent = note.title;
+  document.getElementById('scenarioNoteBody').textContent = note.body;
+  el.classList.add('show');
+}
+
+function hideScenarioNote() {
+  document.getElementById('scenarioNote').classList.remove('show');
+}
+
+function resetLevers() {
+  resetToBaseline();
+  document.querySelectorAll('.scenario-pill').forEach(p => p.classList.remove('active'));
+  hideScenarioNote();
+  currentScenario = 'baseline';
+  renderCanvas();
+  renderLevers();
+  if (selectedNode) renderInfoPanel();
+}
+
+function resetView() {
+  // 重置所有视图状态：缩放、平移、用户拖动的角度、选中节点
+  zoomLevel = 1;
+  panX = 0;
+  panY = 0;
+  Object.keys(userAngles).forEach(k => delete userAngles[k]);
+  selectedNode = null;
+  resetLevers();
+  computeNodePositions();
+  renderCanvas();
+  renderInfoPanel();
+  updateZoomIndicator();
+}
+
+function zoomIn() {
+  zoomLevel = Math.min(ZOOM_MAX, zoomLevel + 0.2);
+  renderCanvas();
+  updateZoomIndicator();
+}
+
+function zoomOut() {
+  zoomLevel = Math.max(ZOOM_MIN, zoomLevel - 0.2);
+  renderCanvas();
+  updateZoomIndicator();
+}
+
+// 暴露给 HTML onclick
+window.selectNode = selectNode;
+window.onLeverChange = onLeverChange;
+window.loadScenario = loadScenario;
+window.resetLevers = resetLevers;
+window.resetView = resetView;
+window.zoomIn = zoomIn;
+window.zoomOut = zoomOut;
+
+// === 初始化 ===
+function init() {
+  initCanvas();
+  renderCanvas();
+  renderLevers();
+  renderInfoPanel();
+
+  // 缩放：滚轮 / 触控板
+  const canvasWrap = document.querySelector('.canvas-wrap');
+  canvasWrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY * -0.001;
+    zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel + delta));
+    renderCanvas();
+    updateZoomIndicator();
+  }, { passive: false });
+
+  // 平移：在画布空白处用左键拖动 / 中键 / 右键
+  let isPanning = false;
+  let panStart = null;
+
+  canvasWrap.addEventListener('mousedown', (e) => {
+    const onNode = e.target.closest && e.target.closest('.node-group');
+    const onEdge = e.target.classList && e.target.classList.contains('edge');
+    if (onNode || onEdge) return;
+
+    e.preventDefault();
+    isPanning = true;
+    panStart = { x: e.clientX - panX, y: e.clientY - panY };
+    canvasWrap.style.cursor = 'grabbing';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    panX = e.clientX - panStart.x;
+    panY = e.clientY - panStart.y;
+    renderCanvas();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isPanning) {
+      isPanning = false;
+      canvasWrap.style.cursor = '';
+    }
+  });
+
+  canvasWrap.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // === 触屏支持：单指平移、双指缩放 ===
+  let touchState = null;
+
+  canvasWrap.addEventListener('touchstart', (e) => {
+    const onNode = e.target.closest && e.target.closest('.node-group');
+
+    if (e.touches.length === 1 && !onNode) {
+      e.preventDefault();
+      touchState = {
+        type: 'pan',
+        startX: e.touches[0].clientX - panX,
+        startY: e.touches[0].clientY - panY,
+      };
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchState = {
+        type: 'pinch',
+        startDist: Math.sqrt(dx * dx + dy * dy),
+        startZoom: zoomLevel,
+      };
+    }
+  }, { passive: false });
+
+  canvasWrap.addEventListener('touchmove', (e) => {
+    if (!touchState) return;
+    e.preventDefault();
+
+    if (touchState.type === 'pan' && e.touches.length === 1) {
+      panX = e.touches[0].clientX - touchState.startX;
+      panY = e.touches[0].clientY - touchState.startY;
+      renderCanvas();
+    } else if (touchState.type === 'pinch' && e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const ratio = dist / touchState.startDist;
+      zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, touchState.startZoom * ratio));
+      renderCanvas();
+      updateZoomIndicator();
+    }
+  }, { passive: false });
+
+  canvasWrap.addEventListener('touchend', () => {
+    touchState = null;
+  });
+
+  // 首次访问自动打开 tutorial
+  if (!localStorage.getItem('macro_tutorial_seen')) {
+    setTimeout(() => startTutorial(), 600);
+  }
+}
+
+// === TUTORIAL ===
+const TUTORIAL_STEPS = [
+  {
+    title: '欢迎使用全球宏观经济联动系统',
+    body: '这是一个由 <strong>22 个核心节点</strong>组成的因果网络，分布在 5 层径向环上：从内到外依次是<strong>货币基础 → 经济运行 → 政策调控 → 金融市场 → 资产定价</strong>。每条边都基于真实的实证研究（Bernanke-Kuttner, Taylor Rule, Phillips Curve 等）。<div class="tut-example">这个工具的目标：建立一个统一的解读框架，让你之后看到任何宏观新闻，都能问"这会进入哪个节点 → 沿哪些边传导 → 影响哪些资产"。</div>',
+  },
+  {
+    title: '步骤 1：拖动杠杆，观察网络响应',
+    body: '底部有 <strong>9 个杠杆</strong>对应真实政策工具：美联储利率、CPI 通胀、失业率、关税、油价、中国信贷脉冲、财政赤字、地缘风险、政策不确定性。<br><br>试试 <strong>把美联储利率从 4.5% 拖到 7%</strong>。整个网络会级联响应：<br><br>• 实际利率 ↑ → 黄金 ↓<br>• 美元 ↑ → 新兴市场 ↓ → 大宗 ↓<br>• 美股 ↓（Bernanke-Kuttner: 25bp 加息 → 标普 -1%）<br>• 全球流动性 ↓<div class="tut-example">每个节点旁边的 ↑↓ 箭头实时显示状态变化，连线颜色绿色=利好传导、红色=利空传导。</div>',
+  },
+  {
+    title: '步骤 2：点击节点，查看详情',
+    body: '<strong>左键点击任意节点</strong>，右侧面板会展开：<br><br>• <strong>机制描述</strong>：这个节点是什么、如何定价<br>• <strong>关键指标</strong>：当前真实数值参考<br>• <strong>上游驱动</strong>：哪些节点影响它（带强度系数）<br>• <strong>下游影响</strong>：它影响哪些节点<br>• <strong>实证依据</strong>：具体研究、年份、数据<div class="tut-example">点击连接的节点可以跳转过去，形成网状探索。例如：从"美联储利率"跳到"实际利率"，再跳到"黄金"，建立完整的传导链路认知。</div>',
+  },
+  {
+    title: '步骤 3：试试历史情景',
+    body: '底部 <strong>橙色按钮是真实历史案例</strong>，每个对应特定年份的精确数据：<br><br>• <code>滞胀 1974</code>：CPI 12%、失业 9%、油价 $145<br>• <code>Volcker 1981</code>：利率推至 19-20%<br>• <code>金融危机 2008</code>：HY 利差 1971bp、VIX 89<br>• <code>COVID 2020</code>：失业 14.7%、财政 14.7% GDP<br><br>点击任一情景，所有杠杆同步切换到当时的真实数值，观察整个网络的响应模式。<div class="tut-example">这是建立"市场记忆"的最快方式——看到 2025 的某个数据，问自己"这更像 1974 还是 2008？"</div>',
+  },
+  {
+    title: '步骤 4：画布操作',
+    body: '<strong>滚轮</strong>：缩放 40%-250%（右下角有按钮和百分比指示）<br><strong>左键拖动空白</strong>：上下左右平移画布<br><strong>左键拖动节点</strong>：节点沿所属环旋转（约束在自己层）<br><strong>右下角 ⟲</strong>：重置所有视图状态<br><br><strong>触屏</strong>：单指拖动平移、双指捏合缩放<br><br>右下角橙色 <strong>?</strong> 按钮可以随时重新打开此教程。',
+  },
+  {
+    title: '步骤 5：两套心智模型',
+    body: '画布右上角的"<strong>视图模式</strong>"切换器有两套视图：<br><br><strong>① 5层架构视图</strong>（默认）：节点按"货币基础→经济运行→政策调控→金融市场→资产定价"分层着色。适合深入理解传导机制。<br><br><strong>② 三因子视图</strong>：节点按主导因子重新着色——<span style="color:#7eb8d8">增长(蓝)</span>、<span style="color:#e57373">通胀(红)</span>、<span style="color:#b8a8e0">流动性(紫)</span>。这是 Ray Dalio 全天候组合的理论基础。<div class="tut-example"><strong>建议工作流</strong>：先用 5 层视图建立细节认知（哪些边、哪些机制），再切换到三因子视图压缩成"判断 3 个变量方向"的可执行框架。点击单个因子可以高亮该因子链路，淡化其余。</div>',
+  },
+];
+
+let tutStep = 0;
+
+function startTutorial() {
+  tutStep = 0;
+  document.getElementById('tutorialOverlay').classList.add('active');
+  renderTutorialStep();
+}
+
+function skipTutorial() {
+  document.getElementById('tutorialOverlay').classList.remove('active');
+  localStorage.setItem('macro_tutorial_seen', '1');
+}
+
+function nextTutorial() {
+  if (tutStep < TUTORIAL_STEPS.length - 1) {
+    tutStep++;
+    renderTutorialStep();
+  } else {
+    skipTutorial();
+  }
+}
+
+function prevTutorial() {
+  if (tutStep > 0) {
+    tutStep--;
+    renderTutorialStep();
+  }
+}
+
+function renderTutorialStep() {
+  const step = TUTORIAL_STEPS[tutStep];
+  document.getElementById('tutTitle').textContent = step.title;
+  document.getElementById('tutBody').innerHTML = step.body;
+  document.getElementById('tutStepNum').textContent = tutStep + 1;
+  document.getElementById('tutBack').disabled = tutStep === 0;
+  document.getElementById('tutNext').textContent =
+    tutStep === TUTORIAL_STEPS.length - 1 ? '开始探索 ✓' : '下一步 →';
+
+  // Render dots
+  const dotsEl = document.getElementById('tutDots');
+  dotsEl.innerHTML = TUTORIAL_STEPS.map((_, i) =>
+    `<div class="tut-dot ${i === tutStep ? 'active' : ''}"></div>`
+  ).join('');
+}
+
+window.startTutorial = startTutorial;
+window.skipTutorial = skipTutorial;
+window.nextTutorial = nextTutorial;
+window.prevTutorial = prevTutorial;
+
+// === 视图模式切换 ===
+function setViewMode(mode) {
+  viewMode = mode;
+
+  // 更新 UI 按钮 active 状态
+  document.querySelectorAll('.view-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+
+  // 显示/隐藏因子过滤器
+  const filterEl = document.getElementById('factorFilter');
+  if (mode === 'factors') {
+    filterEl.style.display = 'flex';
+    factorFilter = 'all';
+    document.querySelectorAll('.factor-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.factor === 'all');
+    });
+    // 提示信息
+    showFactorInfo();
+  } else {
+    filterEl.style.display = 'none';
+    hideFactorInfo();
+  }
+
+  renderCanvas();
+}
+
+function setFactorFilter(factor) {
+  factorFilter = factor;
+  document.querySelectorAll('.factor-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.factor === factor);
+  });
+  if (factor === 'all') {
+    showFactorInfo();
+  } else {
+    showFactorInfo(factor);
+  }
+  renderCanvas();
+}
+
+function showFactorInfo(factor) {
+  // 在右侧 info panel 顶部显示因子说明（如果当前没有选中的节点）
+  if (selectedNode) return;  // 节点详情优先
+
+  const panel = document.getElementById('infoPanel');
+  if (!factor) {
+    // 总览：显示三因子并列
+    panel.innerHTML = `
+      <div class="info-empty" style="display:block;padding-top:0">
+        <div style="font-family:'Fraunces',serif;font-size:20px;color:var(--ink);margin-bottom:6px">三因子简化视图</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);margin-bottom:18px;letter-spacing:0.05em">
+          BRIDGEWATER ALL WEATHER FRAMEWORK
+        </div>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.7;margin-bottom:18px">
+          Ray Dalio 提出的简化框架：<strong style="color:var(--ink)">任何宏观环境都可以由 增长 × 通胀 两个维度决定</strong>，再叠加一层贯穿全局的流动性。这是从 22 节点 5 层架构到一个可执行投资框架的"压缩"——损失了一些中介变量的解释力，但给出了清晰的资产配置心智模型。
+        </div>
+        ${Object.keys(FACTOR_META).map(k => {
+          const f = FACTOR_META[k];
+          const count = Object.values(FACTOR_MAP).filter(v => v === k).length;
+          return `
+            <div style="margin-bottom:14px;padding:14px;background:var(--bg-soft);border-left:3px solid ${f.color};border-radius:0 4px 4px 0;cursor:pointer"
+                 onclick="setFactorFilter('${k}')">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div style="font-family:'Fraunces',serif;font-size:16px;color:${f.color};font-weight:500">
+                  ${f.name} <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);margin-left:6px">${f.en}</span>
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute)">${count} 节点</div>
+              </div>
+              <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.6">${f.desc}</div>
+            </div>
+          `;
+        }).join('')}
+        <div style="margin-top:16px;padding:12px;background:var(--bg-deep);border-radius:4px;font-size:11px;color:var(--ink-mute);line-height:1.6">
+          💡 <strong style="color:var(--ink)">使用建议</strong>：先用"5层架构"理解传导细节，再切换到"三因子"看大局。判断当前宏观环境时问：<br>
+          • 增长上行还是下行？<br>
+          • 通胀上行还是下行？<br>
+          • 流动性扩张还是收缩？<br>
+          四象限对应的最优资产类别即美林时钟。
+        </div>
+      </div>
+    `;
+  } else {
+    // 单因子激活：显示该因子详情和该因子下的节点列表
+    const f = FACTOR_META[factor];
+    const factorNodes = NODES.filter(n => FACTOR_MAP[n.id] === factor);
+    panel.innerHTML = `
+      <div class="info-empty" style="display:block;padding-top:0">
+        <div style="display:inline-block;padding:3px 10px;background:${f.color};color:#0a0b0d;border-radius:3px;font-size:10px;font-weight:600;letter-spacing:0.08em;margin-bottom:10px">
+          ${f.en.toUpperCase()} 因子
+        </div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;color:${f.color};margin-bottom:12px">${f.name}</div>
+        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.75;margin-bottom:18px">${f.desc}</div>
+
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute);letter-spacing:0.1em;margin-bottom:8px;text-transform:uppercase">
+          属于此因子的节点 (${factorNodes.length})
+        </div>
+        ${factorNodes.map(n => `
+          <div style="padding:8px 12px;background:var(--bg-soft);border-radius:3px;margin-bottom:4px;cursor:pointer;display:flex;justify-content:space-between;align-items:center"
+               onclick="selectNode('${n.id}')">
+            <span style="font-size:12px;color:var(--ink)">${n.name}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-mute)">${n.en}</span>
+          </div>
+        `).join('')}
+
+        <div style="margin-top:14px;font-size:11px;color:var(--ink-mute);line-height:1.6">
+          点击节点查看详细传导机制。点击其他因子切换视角，点击"全部"返回三因子总览。
+        </div>
+      </div>
+    `;
+  }
+}
+
+function hideFactorInfo() {
+  // 切换回 layers 模式时，恢复默认的空面板（如无选中节点）
+  if (!selectedNode) {
+    renderInfoPanel();
+  }
+}
+
+window.setViewMode = setViewMode;
+window.setFactorFilter = setFactorFilter;
+
+// === 传导动画 ===
+function startCascadeAnimation() {
+  // 取消任何正在进行的动画
+  if (animationTimer) {
+    clearInterval(animationTimer);
+    animationTimer = null;
+  }
+
+  // 计算每个节点的深度
+  const computedDepths = computeNodeDepths();
+
+  // 关键：给所有未被影响的节点显式设 depth=-998（无关，深度淡化）
+  // 这样 render.js 会识别它们并保持深度淡化，不会"先于动画显现"
+  animationDepths = {};
+  NODES.forEach(n => {
+    if (computedDepths[n.id] !== undefined) {
+      animationDepths[n.id] = computedDepths[n.id];
+    } else {
+      animationDepths[n.id] = -998;  // 无关节点
+    }
+  });
+
+  // 找出最大深度（只看会被影响的节点）
+  const realDepths = Object.values(computedDepths).filter(d => d !== undefined);
+  const maxDepth = realDepths.length > 0 ? Math.max(...realDepths) : 0;
+
+  // 如果没有任何节点变化（baseline 状态），直接全显
+  if (realDepths.length === 0) {
+    animationProgress = 999;
+    animationDepths = {};
+    renderCanvas();
+    return;
+  }
+
+  // 从 -1（全暗）开始，逐层点亮
+  animationProgress = -1;
+  renderCanvas();
+
+  // 每 850ms 推进一层（更慢，让层次清晰）
+  let currentDepth = -1;
+  animationTimer = setInterval(() => {
+    currentDepth++;
+    animationProgress = currentDepth;
+    renderCanvas();
+
+    if (currentDepth >= maxDepth) {
+      clearInterval(animationTimer);
+      animationTimer = null;
+      // 动画结束后保留最终状态
+      // 让用户充分感受完整传导链路 700ms 后再触发淡出
+      setTimeout(() => {
+        animationProgress = 999;
+        justFinishedAnimation = true;  // 标记：触发 factor-mode 平滑淡化
+        renderCanvas();
+        setTimeout(() => { justFinishedAnimation = false; }, 50);
+      }, 700);
+    }
+  }, 850);
+
+  // 更新重播按钮状态
+  updateReplayButton();
+}
+
+function updateReplayButton() {
+  const btn = document.getElementById('replayBtn');
+  if (!btn) return;
+  // 检查任何 lever 是否偏离 baseline
+  const hasActive = LEVERS.some(lever => {
+    return Math.abs(currentLevers[lever.id] - lever.baseline) > 0.001;
+  });
+  btn.style.display = hasActive ? '' : 'none';
+}
+
+window.startCascadeAnimation = startCascadeAnimation;
+
+function updateZoomIndicator() {
+  const ind = document.getElementById('zoomIndicator');
+  if (ind) ind.textContent = `${Math.round(zoomLevel * 100)}%`;
+}
+
+window.addEventListener('load', init);
+window.addEventListener('resize', () => {
+  // 窗口大小变化时，重新计算 fit-to-screen（强制重新触发自动缩放）
+  zoomLevel = 1;
+  initCanvas();
+  renderCanvas();
+  updateZoomIndicator();
+});
+</script>
+
+</body>
+</html>
