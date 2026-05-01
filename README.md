@@ -2,7 +2,7 @@
 
 > 一个交互式可视化工具，用 22 个核心节点 + 60+ 条带实证依据的因果边，把"美联储利率→实际利率→黄金""中国信贷脉冲→大宗商品""信用利差→风险偏好"这些散落在教科书、研报、推特里的传导链路，**汇成一张可点击、可拖动、可重播的网络**。
 
-(https://lengyuelang78-maker.github.io/global-macro-interactive/) · [作者 lengyuelang78-maker](https://github.com/wolf_cool)
+[作者 lengyuelang78-maker](https://github.com/wolf_cool)
 ---
 
 ## 这个工具想解决什么
